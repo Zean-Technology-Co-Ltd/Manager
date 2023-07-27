@@ -12,7 +12,7 @@ class WeChatManager: NSObject {
 //        WXApi.startLog(by: WXLogLevel.detail) { msg in
 //            log.info("WXLogLevel\(msg)")
 //        }
-        WXApi.registerApp(NNApiConst.WeChat.appID, universalLink: NNApiConst.WeChat.universalLink)
+        WXApi.registerApp(ApiConst.WeChat.appID, universalLink: ApiConst.WeChat.universalLink)
 //        WXApi.checkUniversalLinkReady { step, result in
 //            log.info("step:\(step)")
 //            log.info("result.success:\(result.success)")
@@ -32,7 +32,7 @@ class WeChatManager: NSObject {
     /// 支付
     class func miniProgramPayReq(_ repaymentSn: String, payAmount: String) -> WXLaunchMiniProgramReq{
         let launchMiniProgramReq = WXLaunchMiniProgramReq.object()
-        launchMiniProgramReq.userName = NNApiConst.WeChat.miniProgramName;
+        launchMiniProgramReq.userName = ApiConst.WeChat.miniProgramName;
         launchMiniProgramReq.path = "pages/money/payBill?repaymentSn=\(repaymentSn)&payAmount=\(payAmount)";
 #if DEBUG
         launchMiniProgramReq.miniProgramType = WXMiniProgramType.test //拉起小程序的类型
@@ -45,8 +45,8 @@ class WeChatManager: NSObject {
     /// 客服
     class func miniProgramReq() -> WXLaunchMiniProgramReq?{
         let launchMiniProgramReq = WXLaunchMiniProgramReq.object()
-        launchMiniProgramReq.userName = NNApiConst.WeChat.miniProgramName;
-        launchMiniProgramReq.path = NNApiConst.WeChat.miniProgramPath;
+        launchMiniProgramReq.userName = ApiConst.WeChat.miniProgramName;
+        launchMiniProgramReq.path = ApiConst.WeChat.miniProgramPath;
 #if DEBUG
         launchMiniProgramReq.miniProgramType = WXMiniProgramType.test //拉起小程序的类型
 #else
@@ -57,10 +57,10 @@ class WeChatManager: NSObject {
     
     class func share()-> SendMessageToWXReq{
         let webpageObject = WXWebpageObject()
-        webpageObject.webpageUrl = NNApiConst.WeChat.webpageUrl
+        webpageObject.webpageUrl = ApiConst.WeChat.webpageUrl
         let message = WXMediaMessage()
-        message.title = NNApiConst.WeChat.appName;
-        message.description = NNApiConst.WeChat.description
+        message.title = ApiConst.WeChat.appName;
+        message.description = ApiConst.WeChat.description
         message.setThumbImage(R.image.common_logo()!)
         message.mediaObject = webpageObject
         let req = SendMessageToWXReq()

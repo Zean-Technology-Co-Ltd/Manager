@@ -10,7 +10,7 @@ import SensorsAnalyticsSDK
 
 class TrackManager: NSObject {
     static func register(_ launchOptions: [UIApplication.LaunchOptionsKey: Any]?){
-        let options = SAConfigOptions.init(serverURL: NNApiConst.APIKey.trackURL, launchOptions: launchOptions)
+        let options = SAConfigOptions.init(serverURL: ApiConst.APIKey.trackURL, launchOptions: launchOptions)
         //开启全埋点
         options.autoTrackEventType = [
             .eventTypeAppStart,
@@ -48,7 +48,7 @@ class TrackManager: NSObject {
             "name": Authorization.default.oauthUser?.realName ?? "",
             "cardNo": Authorization.default.oauthUser?.cardNo ?? "",
             "mobile": Authorization.default.token?.username ?? "",
-            "tenant": NNApiConst.ServiceKey.Tenant,
+            "tenant": ApiConst.ServiceKey.Tenant,
             "deviceId": data?["$device_id"] ?? "",
             "deviceType": "iOS Phone"
         ])

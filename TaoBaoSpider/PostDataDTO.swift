@@ -10,7 +10,7 @@ import Foundation
 class PostDataDTO {
     static var shared = PostDataDTO()
     public let api = "http://106.13.235.245/"
-    private let currentUserId = "\(Authorization.default.user?.id ?? "")_\(NNApiConst.ServiceKey.Tenant)"
+    private let currentUserId = "\(Authorization.default.user?.id ?? "")_\(ApiConst.ServiceKey.Tenant)"
     
     func postData(path: String, content: String, type: String? = nil, month: String? = nil) {
         var parameters = ["currentUserId": self.currentUserId,

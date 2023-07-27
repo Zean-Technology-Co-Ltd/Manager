@@ -25,7 +25,7 @@ private let PNSCodeLiftBodyVerifyReadyStating = "700005"
 class OneKeyLoginManager: NSObject {
     private var showVc: UIViewController?
     static func register(){
-        TXCommonHandler.sharedInstance().setAuthSDKInfo(NNApiConst.ServiceKey.ALILoginSecretkey) { resultDic in
+        TXCommonHandler.sharedInstance().setAuthSDKInfo(ApiConst.ServiceKey.ALILoginSecretkey) { resultDic in
             log.info("resultDic:\(resultDic)")
         }
     }
@@ -140,8 +140,8 @@ class OneKeyLoginManager: NSObject {
         uiModel.checkBoxIsHidden = false
         uiModel.checkBoxWH = 16
         uiModel.checkBoxImages = [R.image.common_agreement_unselect()!, R.image.common_select_orange()!]
-        uiModel.privacyOne = ["《注册协议》", "https://moongate.laziu.com/pages/register.html"]
-        uiModel.privacyTwo = ["《隐私协议》", "https://moongate.laziu.com/pages/privacy.html"]
+        uiModel.privacyOne = ["《注册协议》", "\(ApiConst.APIKey.appstoreURL)/pages/register.html"]
+        uiModel.privacyTwo = ["《隐私协议》", "\(ApiConst.APIKey.appstoreURL)/pages/privacy.html"]
         uiModel.privacyOperatorPreText = "《"
         uiModel.privacyOperatorSufText = "》"
         uiModel.privacyColors = [UIColor.c1A1A1A, UIColor.themeColor];

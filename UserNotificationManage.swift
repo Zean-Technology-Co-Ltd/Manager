@@ -50,7 +50,7 @@ extension NotificationApi: RequestTargetType {
     }
     
     var baseURL: URL {
-        return URL(string: NNApiConst.APIKey.serverURL)!
+        return URL(string: ApiConst.APIKey.serverURL)!
     }
     
     var shouldAuthorize: Bool {
