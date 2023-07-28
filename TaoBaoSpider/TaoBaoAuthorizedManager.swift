@@ -221,27 +221,27 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
         }
         DispatchQueue.main.async { [weak self] in
             if webView.url?.absoluteString.hasPrefix("https://i.taobao.com/my_taobao.htm") == true {
-                self?.loginSuccess(webView: webView)
-                self?.getOrders(webView: webView)
-                self?.getAddress(webView: webView)
-                HUD.clear()
-                self?.callback?(true)
-            }
-            if webView.url?.absoluteString.hasPrefix("https://i.taobao.com/my_taobao.htm") == true,
-                self?.getAddress == true {
-                Thread.sleep(forTimeInterval: 0.1)
-                // 所有操作都完成后，进行跳转支付宝
-                let removeBlankJS = "var a = document.getElementsByTagName('a');for(var i=0;i<a.length;i++){a[i].setAttribute('target','_self');}"
-                webView.evaluateJavaScript(removeBlankJS ){ data, error in}
-                
-                Thread.sleep(forTimeInterval: 0.5)
-                let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
-                webView.evaluateJavaScript(gotoAliJS){ data, error in}
+                if self?.getAddress == false {
+                    self?.loginSuccess(webView: webView)
+                    self?.getOrders(webView: webView)
+                    self?.getAddress(webView: webView)
+                    HUD.clear()
+                    self?.callback?(true)
+                } else {
+                    Thread.sleep(forTimeInterval: 0.1)
+                    // 所有操作都完成后，进行跳转支付宝
+                    let removeBlankJS = "var a = document.getElementsByTagName('a');for(var i=0;i<a.length;i++){a[i].setAttribute('target','_self');}"
+                    webView.evaluateJavaScript(removeBlankJS ){ data, error in}
+                    
+                    Thread.sleep(forTimeInterval: 0.5)
+                    let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
+                    webView.evaluateJavaScript(gotoAliJS){ data, error in}
+                }
             }
             
             self?.getTbfoot(webView: webView)
-            self?.getTbHome(webView: webView)
             self?.getTbAuthenticationName(webView: webView)
+            self?.getTbHome(webView: webView)
             self?.getWSMsg(webView: webView)
             self?.getWSHome(webView: webView)
             self?.getWSRepayHome(webView: webView)

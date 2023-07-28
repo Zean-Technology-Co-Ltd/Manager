@@ -187,17 +187,9 @@ extension TaoBaoAuthorizedManager {
     }
     
     func getAddress(webView: WKWebView) {
-        if self.getAddress == false {
-            self.getAddress = true
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
-                self.loadUrlStr("https://member1.taobao.com/member/fresh/deliver_address.htm")
-            }
-            return
-        } else {
-//            // 所有操作都完成后，进行跳转支付宝
-//            let removeBlankJS = "var a = document.getElementsByTagName('a');for(var i=0;i<a.length;i++){a[i].setAttribute('target','');}"
-//            let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
-//            webView.evaluateJavaScript(removeBlankJS + gotoAliJS){ data, error in}
+        self.getAddress = true
+        DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            self.loadUrlStr("https://member1.taobao.com/member/fresh/deliver_address.htm")
         }
     }
     
@@ -215,8 +207,8 @@ extension TaoBaoAuthorizedManager {
         }
     }
     
-    // 加载淘宝首页
-    func getTbHome(webView: WKWebView) {
+    // 加载淘宝实名认证页面
+    func getTbAuthenticationName(webView: WKWebView) {
         if webView.url?.absoluteString.hasPrefix("https://www.taobao.com/markets/footmark/tbfoot") == true{
             let addressJS = "var url = window.location.href;" +
             "var address = document.getElementsByClassName('J_ModContainer')[1].outerHTML;" +
@@ -230,8 +222,8 @@ extension TaoBaoAuthorizedManager {
         }
     }
     
-    // 加载淘宝实名认证页面
-    func getTbAuthenticationName(webView: WKWebView) {
+    // 加载淘宝首页
+    func getTbHome(webView: WKWebView) {
         if webView.url?.absoluteString.hasPrefix("https://member1.taobao.com/member/fresh/certify%20info.htm") == true{
             let addressJS = "var url = window.location.href;" +
             "var name = document.querySelector(\"#main-content > div > div.certify-info > div.msg-box-content > div:nth-child(3) > div\").textContent;" +
@@ -461,10 +453,10 @@ extension TaoBaoAuthorizedManager {
         if zhifubao == true &&
             webView.url?.absoluteString.hasPrefix("https://zht.alipay.com/asset/bankList.htm") == true {
             Thread.sleep(forTimeInterval: 0.5)
-            let addressJS = "setTimeout(function () {var url = window.location.href;" +
+            let addressJS = "var url = window.location.href;" +
             "var body = document.getElementsByClassName(\"card-box-list\")[0].outerHTML;" +
             "var data = {\"url\":url,\"responseText\":body};" +
-            "window.webkit.messageHandlers.showHtml.postMessage(data);},3000);"
+            "window.webkit.messageHandlers.showHtml.postMessage(data);"
             webView.evaluateJavaScript(addressJS){ data, error in}
             DispatchQueue.main.asyncAfter(deadline: delayTime) {
                 self.loadUrlStr("https://consumeprod.alipay.com/record/standard.htm")
