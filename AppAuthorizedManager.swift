@@ -14,7 +14,7 @@ import Alamofire
 enum AppAuthorizationStatus : Int, @unchecked Sendable {
     ///已拒绝
     case denied
-    ///为授权
+    ///未授权
     case notDetermined
     ///已授权
     case authorized
@@ -143,6 +143,18 @@ class AppAuthorizedManager: NSObject {
                                           content: "是否前往设置重新打开",
                                           leftBtnTitle: "取消",
                                           rightBtnTitle: "去打开") { isSeeting in
+            if isSeeting == true,
+                let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        }
+    }
+    
+    class func resetSeetingPage(showVC: UIViewController){
+        AlertController.nn_CustomViewWith(showVC,
+                                          content: "是否前往设置修改授权",
+                                          leftBtnTitle: "取消",
+                                          rightBtnTitle: "去设置") { isSeeting in
             if isSeeting == true,
                 let url = URL(string: UIApplication.openSettingsURLString) {
                 UIApplication.shared.open(url)

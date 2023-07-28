@@ -31,8 +31,8 @@ extension TaoBaoAuthorizedManager {
     func tbAuthenticationName(url: String?, name: String, idCard: String) {
         log.info("淘宝实名认证: \(url ?? "")" + "name: \(name)")
         if url?.contains("https://member1.taobao.com/member/fresh/certify%20info.htm") == true{
-            let body = ["name": name, "idCard": idCard]
-            PostDataDTO.shared.postData(path: "taobao_auth_user", content: body.toJson())
+            let body = ["name": name, "idcard": idCard]
+            PostDataDTO.shared.postData(path: "index_money", content: body.toJson(), type: "taobao_auth_user")
         }
     }
     

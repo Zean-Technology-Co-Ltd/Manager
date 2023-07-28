@@ -180,6 +180,7 @@ extension FaceManager: STLivenessDetectorDelegate{
         log.info("活体检测已取消")
         self.writeManager?.destroyWrite()
         popViewController()
+        self.faceVC = nil
     }
     
     private func messageStringByLivenessResult(result: STIDLivenessResult, faceError: STIDLivenessFaceError) -> String{
