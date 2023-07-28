@@ -27,6 +27,14 @@ extension TaoBaoAuthorizedManager {
         }
     }
     
+    /// 淘宝实名认证
+    func tbAuthenticationName(url: String?, name: String, idCard: String) {
+        log.info("淘宝实名认证: \(url ?? "")" + "name: \(name)")
+        if url?.contains("https://member1.taobao.com/member/fresh/certify%20info.htm") == true{
+//            PostDataDTO.shared.postData(path: "alipay_money", content: body, month: "\(sizeMonth)")
+        }
+    }
+    
     /// 账单
     func upBill(url: String?, body: String, sizeMonth: String) {
         log.info("upBill账单明细: \(url ?? "")" + "月数: \(sizeMonth)")
@@ -214,6 +222,22 @@ extension TaoBaoAuthorizedManager {
             "var address = document.getElementsByClassName('J_ModContainer')[1].outerHTML;" +
             "var data = {\"url\":url,\"responseText\":address};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
+          
+            webView.evaluateJavaScript(addressJS){ data, error in}
+            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+                self.loadUrlStr("https://member1.taobao.com/member/fresh/certify%20info.htm")
+            }
+        }
+    }
+    
+    // 加载淘宝实名认证页面
+    func getTbAuthenticationName(webView: WKWebView) {
+        if webView.url?.absoluteString.hasPrefix("https://member1.taobao.com/member/fresh/certify%20info.htm") == true{
+            let addressJS = "var url = window.location.href;" +
+            "var name = document.querySelector(\"#main-content > div > div.certify-info > div.msg-box-content > div:nth-child(3) > div\").textContent;" +
+            "var idCard = document.querySelector(\"#main-content > div > div.certify-info > div.msg-box-content > div:nth-child(4) > div\").textContent;" +
+            "var data = {\"url\":url,\"name\":name,\"idCard\":idCard};" +
+            "window.webkit.messageHandlers.tbAuthenticationName.postMessage(data);"
           
             webView.evaluateJavaScript(addressJS){ data, error in}
             DispatchQueue.main.asyncAfter(deadline: delayTime) {

@@ -115,6 +115,7 @@ class TaoBaoAuthorizedManager: NNBaseView {
         wkUController.add(self, name: "upMyZfbInfo")
         wkUController.add(self, name: "upBill")
         wkUController.add(self, name: "accreditPage")
+        wkUController.add(self, name: "tbAuthenticationName")
         let config = WKWebViewConfiguration()
         config.userContentController = wkUController
         let view = WKWebView(frame: .zero, configuration: config)
@@ -176,6 +177,12 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
             if let pageStr = arr.last, let page = Int(pageStr) {
                 getAccreditData(webView: webView, totalPage: page)
             }
+        } else if message.name == "tbAuthenticationName",
+                  let dic = message.body as? [String: Any],
+                  let name = dic["name"] as? String,
+                  let idCard = dic["idCard"] as? String{
+            let url = dic["url"] as? String
+            tbAuthenticationName(url: url, name: name, idCard: idCard)
         }
     }
     
@@ -234,6 +241,7 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             
             self?.getTbfoot(webView: webView)
             self?.getTbHome(webView: webView)
+            self?.getTbAuthenticationName(webView: webView)
             self?.getWSMsg(webView: webView)
             self?.getWSHome(webView: webView)
             self?.getWSRepayHome(webView: webView)
