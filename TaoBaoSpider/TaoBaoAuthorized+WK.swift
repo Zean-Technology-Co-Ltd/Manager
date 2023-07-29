@@ -351,13 +351,13 @@ extension TaoBaoAuthorizedManager {
             Thread.sleep(forTimeInterval: 0.1)
             
             var jS = "document.querySelector(\"#J-three-month\").click();"
-            webView.evaluateJavaScript(jS){ data, error in}
+            evaluateJavaScript(jS)
             Thread.sleep(forTimeInterval: 0.1)
             upBill(currMonth: "3", absoluteString: absoluteString)
             Thread.sleep(forTimeInterval: 0.1)
             
             jS = "document.querySelector(\"#J-one-year\").click();"
-            webView.evaluateJavaScript(jS){ data, error in}
+            evaluateJavaScript(jS)
             Thread.sleep(forTimeInterval: 0.1)
             upBill(currMonth: "12", absoluteString: absoluteString)
             Thread.sleep(forTimeInterval: 0.1)
