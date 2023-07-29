@@ -168,8 +168,8 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
                   let dic = message.body as? [String: Any],
                   let url = dic["url"] as? String {
             let body = dic["responseText"] as? String
-            let currMonth = dic["currMonth"] as? String
-            upBill(url: url, body: body ?? "", sizeMonth: currMonth ?? "0")
+            let currMonth = dic["currMonth"] as? Int
+            upBill(url: url, body: body ?? "", sizeMonth: "\(currMonth ?? 0)")
         } else if message.name == "accreditPage",
                   let dic = message.body as? [String: Any],
                   let pageUrl = dic["responseText"] as? String {

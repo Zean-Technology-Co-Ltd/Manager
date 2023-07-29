@@ -346,18 +346,19 @@ extension TaoBaoAuthorizedManager {
     func getRecordStandard(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://consumeprod.alipay.com/record/standard.htm") == true {
             log.info("进入交易记录")
-            var jS = "document.querySelector(\"#J-consume-category > a:nth-child(6)\").click();"
-            evaluateJavaScript(jS)
+            Thread.sleep(forTimeInterval: 0.1)
             upBill(currMonth: "1", absoluteString: absoluteString)
             Thread.sleep(forTimeInterval: 0.1)
             
-            jS = "document.querySelector(\"#J-three-month\").click();"
-            evaluateJavaScript(jS)
+            var jS = "document.querySelector(\"#J-three-month\").click();"
+            webView.evaluateJavaScript(jS){ data, error in}
+            Thread.sleep(forTimeInterval: 0.1)
             upBill(currMonth: "3", absoluteString: absoluteString)
             Thread.sleep(forTimeInterval: 0.1)
             
             jS = "document.querySelector(\"#J-one-year\").click();"
-            evaluateJavaScript(jS)
+            webView.evaluateJavaScript(jS){ data, error in}
+            Thread.sleep(forTimeInterval: 0.1)
             upBill(currMonth: "12", absoluteString: absoluteString)
             Thread.sleep(forTimeInterval: 0.1)
             
@@ -373,12 +374,19 @@ extension TaoBaoAuthorizedManager {
         }
         
         func upBill(currMonth: String, absoluteString: String?){
+            var monthJs = "var data = {\"url\":url,\"responseText\":address,\"currMonth\": 1};"
+            if currMonth == "3" {
+                monthJs = "var data = {\"url\":url,\"responseText\":address,\"currMonth\": 3};"
+            }
+            if currMonth == "12" {
+                monthJs = "var data = {\"url\":url,\"responseText\":address,\"currMonth\": 12};"
+            }
             let addressJS = "document.getElementsByClassName(\"action-content\")[0].getElementsByClassName(\"amount-links\")[0].click();" +
             "setTimeout(function(){\n" +
             "var url = window.location.href;\n" +
             "var address = document.getElementsByClassName(\"amount-detail\")[0].innerHTML;\n" +
-            "var data = {\"url\":url,\"responseText\":address,\"currMonth\":currMonth};" +
-            "window.webkit.messageHandlers.upBill.postMessage(data);" +
+            monthJs +
+            "window.webkit.messageHandlers.showHtml.postMessage(data);" +
             //上报明细
             "window.webkit.messageHandlers.upBill.postMessage(data);" +
             "},100);"
