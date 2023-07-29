@@ -219,44 +219,48 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             let clickJs = "document.getElementsByClassName(\"icon-qrcode\")[0].click();"
             webView.evaluateJavaScript(clickJs){ data, error in }
         }
-        DispatchQueue.main.async { [weak self] in
-            if webView.url?.absoluteString.hasPrefix("https://i.taobao.com/my_taobao.htm") == true {
-                if self?.getAddress == false {
-                    self?.loginSuccess(webView: webView)
-                    self?.getOrders(webView: webView)
-                    self?.getAddress(webView: webView)
+        let absoluteString = webView.url?.absoluteString
+        DispatchQueue.global().async { [weak self] in
+            if absoluteString?.hasPrefix("https://i.taobao.com/my_taobao.htm") == true {
+                DispatchQueue.main.async { [weak self] in
+                    self?.loginSuccess(webView: webView, absoluteString: absoluteString)
+                    self?.getOrders(webView: webView, absoluteString: absoluteString)
+                    self?.getAddress(webView: webView, absoluteString: absoluteString)
                     HUD.clear()
                     self?.callback?(true)
-                } else {
-                    Thread.sleep(forTimeInterval: 0.1)
-                    // 所有操作都完成后，进行跳转支付宝
-                    let removeBlankJS = "var a = document.getElementsByTagName('a');for(var i=0;i<a.length;i++){a[i].setAttribute('target','_self');}"
-                    webView.evaluateJavaScript(removeBlankJS ){ data, error in}
-                    
-                    Thread.sleep(forTimeInterval: 0.5)
-                    let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
-                    webView.evaluateJavaScript(gotoAliJS){ data, error in}
                 }
             }
+            if absoluteString?.hasPrefix("https://i.taobao.com/my_taobao.htm") == true,
+                self?.getAddress == true {
+                Thread.sleep(forTimeInterval: 0.1)
+                // 所有操作都完成后，进行跳转支付宝
+                let removeBlankJS = "var a = document.getElementsByTagName('a');for(var i=0;i<a.length;i++){a[i].setAttribute('target','_self');}"
+                
+                self?.evaluateJavaScript(removeBlankJS )
+                Thread.sleep(forTimeInterval: 0.5)
+                
+                let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
+                self?.evaluateJavaScript(gotoAliJS)
+            }
             
-            self?.getTbfoot(webView: webView)
-            self?.getTbAuthenticationName(webView: webView)
-            self?.getTbHome(webView: webView)
-            self?.getWSMsg(webView: webView)
-            self?.getWSHome(webView: webView)
-            self?.getWSRepayHome(webView: webView)
-            self?.getWSRepayRecord(webView: webView)
-            self?.getSwitchPersonal(webView: webView)
-            self?.getZFBAccount(webView: webView)
-            self?.getYebPurchase(webView: webView)
-            self?.getRecordStandard(webView: webView)
-            self?.getAliBaseMsg(webView: webView)
-            self?.getMdeductAndToken(webView: webView)
-            self?.getAuthTokenManage(webView: webView)
-            self?.getAliMessager(webView: webView)
-            self?.getÅssetBankList(webView: webView)
-            self?.getAlipayError(webView: webView)
-            self?.getCheckSecurity(webView: webView)
+            self?.getTbfoot(webView: webView, absoluteString: absoluteString)
+            self?.getTbAuthenticationName(webView: webView, absoluteString: absoluteString)
+            self?.getTbHome(webView: webView, absoluteString: absoluteString)
+            self?.getWSMsg(webView: webView, absoluteString: absoluteString)
+            self?.getWSHome(webView: webView, absoluteString: absoluteString)
+            self?.getWSRepayHome(webView: webView, absoluteString: absoluteString)
+            self?.getWSRepayRecord(webView: webView, absoluteString: absoluteString)
+            self?.getSwitchPersonal(webView: webView, absoluteString: absoluteString)
+            self?.getZFBAccount(webView: webView, absoluteString: absoluteString)
+            self?.getYebPurchase(webView: webView, absoluteString: absoluteString)
+            self?.getRecordStandard(webView: webView, absoluteString: absoluteString)
+            self?.getAliBaseMsg(webView: webView, absoluteString: absoluteString)
+            self?.getMdeductAndToken(webView: webView, absoluteString: absoluteString)
+            self?.getAuthTokenManage(webView: webView, absoluteString: absoluteString)
+            self?.getAliMessager(webView: webView, absoluteString: absoluteString)
+            self?.getÅssetBankList(webView: webView, absoluteString: absoluteString)
+            self?.getAlipayError(webView: webView, absoluteString: absoluteString)
+            self?.getCheckSecurity(webView: webView, absoluteString: absoluteString)
         }
     }
     

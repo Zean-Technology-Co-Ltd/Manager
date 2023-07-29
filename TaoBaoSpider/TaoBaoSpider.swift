@@ -31,6 +31,7 @@ class TaoBaoSpider {
             request.setValue(myUA, forHTTPHeaderField: "user-agent")
             request.setValue("zh-CN,zh;q=0.9,en;q=0.8", forHTTPHeaderField: "accept-language")
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                log.info("==========用户信息===========")
                 guard let data = data, let _:URLResponse = response, error == nil else {
                     return
                 }
