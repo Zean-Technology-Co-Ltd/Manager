@@ -15,6 +15,10 @@ class FaceManager: NSObject {
     private let lock = NSLock()
     private var writeManager: AVAssetWriteManager?
     private var videoUrl: URL?
+    
+    deinit {
+        log.info(#function)
+    }
     static let `default`: FaceManager = {
         return FaceManager()
     }()
