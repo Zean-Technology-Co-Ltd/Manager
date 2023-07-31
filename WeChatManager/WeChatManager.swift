@@ -48,7 +48,7 @@ class WeChatManager: NSObject {
         launchMiniProgramReq.userName = ApiConst.WeChat.miniProgramName;
         launchMiniProgramReq.path = ApiConst.WeChat.miniProgramPath;
 #if DEBUG
-        launchMiniProgramReq.miniProgramType = WXMiniProgramType.test //拉起小程序的类型
+        launchMiniProgramReq.miniProgramType = WXMiniProgramType.release //拉起小程序的类型
 #else
         launchMiniProgramReq.miniProgramType = WXMiniProgramType.release //拉起小程序的类型
 #endif

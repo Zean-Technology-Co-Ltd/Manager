@@ -33,7 +33,7 @@ class PayManager: NNBaseView {
         guard let text = linkUrl else { return }
         var request = URLRequest(url: URL(string: text)!)
         if self.paymentType == .wechat {
-            let text = "www.laziu.com://"
+            let text = "\(ApiConst.WeChat.payUniversalLink)://"
             request.setValue(text, forHTTPHeaderField: "referer")
         } else {
             webView.load(request)
@@ -85,7 +85,7 @@ extension PayManager: WKNavigationDelegate{
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         let reqUrl = navigationAction.request.url
-        log.info("reqUrl.absoluteStrin\(reqUrl?.absoluteString ?? "")")
+        log.info("reqUrl.absoluteStrin:\(reqUrl?.absoluteString ?? "")")
         if let reqUrl = reqUrl,
            reqUrl.absoluteString.hasPrefix("alipays://") || reqUrl.absoluteString.hasPrefix("alipay://") {
             UIApplication.shared.open(reqUrl){ bSucc in
