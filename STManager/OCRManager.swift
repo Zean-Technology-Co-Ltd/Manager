@@ -97,11 +97,14 @@ extension OCRManager: STIDCardQualityScannerControllerDelegate{
     }
     
     func detectorInitSuccess(_ idCardQualityDetector: STIDCardQualityDetector!) {
-        idCardQualityDetector.setIncompleteThreshold(CGFloat(OCRData.incompleteThreshold))
+        /// 不完整程度，取值范围为0-1，默认值0.5，得分越低，说明卡片在图片中越完整。区别于遮挡，此处不完整是指卡片边界没有全部出现在图片中
+        idCardQualityDetector.setIncompleteThreshold(0.1)
         idCardQualityDetector.setDimLightThreshold(CGFloat(OCRData.dimLightThreshold))
         idCardQualityDetector.setHighLightThreshold(CGFloat(OCRData.highLightThreshold))
-        idCardQualityDetector.setBlurryThreshold(CGFloat(OCRData.blurryThreshold))
-        idCardQualityDetector.setOccludedThreshold(CGFloat(OCRData.occludedThreshold))
+        /// 模糊度，取值范围为0-1，默认值0.8，得分越低，图片越清晰
+        idCardQualityDetector.setBlurryThreshold(CGFloat(0.1))
+        /// occludedThreshold 遮挡，取值范围为0-1，默认值0.5，得分越低，卡片被遮挡的概率越低。区别于不完整度，此处遮挡指卡片的卡面、关键信息被其他物体遮挡
+        idCardQualityDetector.setOccludedThreshold(0.1)
         idCardQualityDetector.setNormalThreshold(CGFloat(OCRData.normalThreshold))
         idCardQualityDetector.setTimeout(Int(OCRData.detectTimeout))
     }
@@ -109,20 +112,20 @@ extension OCRManager: STIDCardQualityScannerControllerDelegate{
     func idCardScanSuccess(with cardInfo: STIDCardQualityCardInfo!, cloudInfo: STIDCardQualityCloudInfo!) {
         if self.type == .front {
 #if DEBUG
-            self.callback?(cardInfo.frontImage().image, cardInfo.name(), cardInfo.number())
+            self.callback?(cardInfo.originalFrontImage().image, cardInfo.name(), cardInfo.number())
 #else
             if cardInfo.frontImageClassify() == STIDCardQualityImageClassify.normal {
-                self.callback?(cardInfo.frontImage().image, cardInfo.name(), cardInfo.number())
+                self.callback?(cardInfo.originalFrontImage().image, cardInfo.name(), cardInfo.number())
             } else {
                 Toast.showInfo("请扫描身份证原件")
             }
 #endif
         } else {
 #if DEBUG
-            self.callback?(cardInfo.backImage().image, cardInfo.name(), cardInfo.number())
+            self.callback?(cardInfo.originalBackImage().image, cardInfo.name(), cardInfo.number())
 #else
             if cardInfo.backImageClassify() == STIDCardQualityImageClassify.normal {
-                self.callback?(cardInfo.backImage().image, cardInfo.name(), cardInfo.number())
+                self.callback?(cardInfo.originalBackImage().image, cardInfo.name(), cardInfo.number())
             } else {
                 Toast.showInfo("请扫描身份证原件")
             }
