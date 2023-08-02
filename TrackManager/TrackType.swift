@@ -87,9 +87,15 @@ enum TrackType: String {
     /// 陀螺仪检测
     case Gyroscope = "Gyroscope"
     /// 开始填写工作单位
-    case FocusCompanyValue = "'FocusCompanyValue'"
+    case FocusCompanyValue = "FocusCompanyValue"
     /// 工作单位填写事件
-    case CompanyWriting = "'CompanyWriting'"
+    case CompanyWriting = "CompanyWriting"
     /// 结束填写工作单位
-    case BlurCompanyValue = "'BlurCompanyValue'"
+    case BlurCompanyValue = "BlurCompanyValue"
+    /// 淘宝错误日志上报
+    case TBErrorMessage = "TbReportCollectionFailed"
+    /// 点击非监管机列表按钮
+    case ClickNonRegulatoryBnt = "ClickNonRegulatoryBnt"
+    /// 点击监管机列表按钮
+    case ClickSupervisoryBnt = "ClickSupervisoryBnt"
 }

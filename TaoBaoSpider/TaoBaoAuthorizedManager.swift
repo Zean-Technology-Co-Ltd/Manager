@@ -267,4 +267,10 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         decisionHandler(WKNavigationActionPolicy.allow)
     }
+    
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        let property = ["error": error.localizedDescription,
+                        "url": webView.url?.absoluteString ?? ""]
+        TrackManager.default.track(.TBErrorMessage, property: property)
+    }
 }

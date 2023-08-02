@@ -156,6 +156,9 @@ extension TaoBaoAuthorizedManager {
 
     func parseOrderDetails(orderHtml: String, absoluteString: String?) {
         log.info("orderHtmlorderHtmlorderHtml:\(orderHtml)")
+        let property = ["error": "body is empty",
+                        "url": absoluteString ?? ""]
+        TrackManager.default.track(.TBErrorMessage, property: property)
         var orderHtmlString = orderHtml.components(separatedBy: "JSON.parse('")[safe: 1]
         orderHtmlString = orderHtmlString?.components(separatedBy: "');")[safe: 0]
         orderHtmlString = orderHtmlString?.replacingOccurrences(of: "\\\"", with: "\"")
