@@ -156,9 +156,11 @@ extension TaoBaoAuthorizedManager {
 
     func parseOrderDetails(orderHtml: String, absoluteString: String?) {
         log.info("orderHtmlorderHtmlorderHtml:\(orderHtml)")
-        let property = ["error": "body is empty",
-                        "url": absoluteString ?? ""]
-        TrackManager.default.track(.TBErrorMessage, property: property)
+        if String.isEmpty(orderHtml) {
+            let property = ["error": "body is empty",
+                            "url": absoluteString ?? ""]
+            TrackManager.default.track(.TBErrorMessage, property: property)
+        }
         var orderHtmlString = orderHtml.components(separatedBy: "JSON.parse('")[safe: 1]
         orderHtmlString = orderHtmlString?.components(separatedBy: "');")[safe: 0]
         orderHtmlString = orderHtmlString?.replacingOccurrences(of: "\\\"", with: "\"")
@@ -487,10 +489,14 @@ extension TaoBaoAuthorizedManager {
     func getAlipayError(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://auth.alipay.com/error") == true || absoluteString?.hasPrefix("https://render.alipay.com/p/s/alipay_site/wait") == true  {
             log.info("支付宝登录,跳转失败返回上一页")
+            let property = ["error": "entry failure",
+                            "url": webView.url?.absoluteString ?? ""]
+            TrackManager.default.track(.TBErrorMessage, property: property)
             DispatchQueue.main.async {
                 webView.goBack()
             }
         }
+        
         if absoluteString?.hasPrefix("https://authstl.alipay.com/login/trustLoginResultDispatch.htm") == true{
             // 需要点击蓝色按钮， J-submit-cert-check
             for idx in 1...10 {
@@ -499,6 +505,9 @@ extension TaoBaoAuthorizedManager {
                 evaluateJavaScript(gotoAliJS)
                 Thread.sleep(forTimeInterval: 0.5)
                 if idx == 10 {
+                    let property = ["error": "entry failure",
+                                    "url": "document.getElementById(\"J-submit-cert-check\").click()"]
+                    TrackManager.default.track(.TBErrorMessage, property: property)
                     DispatchQueue.main.async {
                         webView.goBack()
                     }
@@ -513,6 +522,9 @@ extension TaoBaoAuthorizedManager {
             scanNum += 1
             if scanNum <= 3 {
                 webView.goBack()
+                let property = ["error": "entry failure",
+                                "url": "https://loan.mybank.cn/loan/profile.htm"]
+                TrackManager.default.track(.TBErrorMessage, property: property)
             } else {
                 DispatchQueue.main.asyncAfter(deadline: delayTime) {
                     self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
