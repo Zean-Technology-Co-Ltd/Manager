@@ -20,7 +20,7 @@
 
 - (NSDictionary<NSString *,id> *)properties {
     NSDictionary *data = [[SensorsAnalyticsSDK sharedInstance] getPresetProperties];
-    return @{@"tenant": @"YLA1182365",
+    return @{@"tenant": [NSObject Tenant],
              @"deviceId": data[@"$device_id"],
              @"deviceType": @"iOS Phone"
     };

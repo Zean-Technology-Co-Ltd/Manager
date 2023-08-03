@@ -48,7 +48,7 @@ class TrackManager: NSObject {
             "name": Authorization.default.oauthUser?.realName ?? "",
             "cardNo": Authorization.default.oauthUser?.cardNo ?? "",
             "mobile": Authorization.default.token?.username ?? "",
-            "tenant": ApiConst.ServiceKey.Tenant,
+            "tenant": NSObject.Tenant,
             "deviceId": data?["$device_id"] ?? "",
             "deviceType": "iOS Phone"
         ])

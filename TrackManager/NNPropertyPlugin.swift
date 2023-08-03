@@ -20,7 +20,7 @@ class NNPropertyPlugin: SAPropertyPlugin {
 
     override func properties() -> [String : Any] {
         let data = SensorsAnalyticsSDK.sharedInstance()?.getPresetProperties()
-        return ["tenant": ApiConst.ServiceKey.Tenant,
+        return ["tenant": NSObject.Tenant,
                 "deviceId": data?["device_id"] ?? "",
                 "deviceType": "iOS Phone"]
     }
