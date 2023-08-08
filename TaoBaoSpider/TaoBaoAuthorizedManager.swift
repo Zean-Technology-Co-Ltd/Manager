@@ -42,6 +42,8 @@ class TaoBaoAuthorizedManager: NNBaseView {
         storage.cookieAcceptPolicy = .always
         return storage
     }
+    public var trackId = "\(Date.todayTimestamp)"
+    public var actionType = "我的淘宝"
     public var getAddress = false
     public var zhifubao = true
     public var taobaoHttp = true
@@ -116,6 +118,7 @@ class TaoBaoAuthorizedManager: NNBaseView {
         wkUController.add(self, name: "upBill")
         wkUController.add(self, name: "accreditPage")
         wkUController.add(self, name: "tbAuthenticationName")
+        wkUController.add(self, name: "trackTbUrl")
         let config = WKWebViewConfiguration()
         config.userContentController = wkUController
         let view = WKWebView(frame: .zero, configuration: config)
@@ -183,6 +186,11 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
                   let idCard = dic["idCard"] as? String{
             let url = dic["url"] as? String
             tbAuthenticationName(url: url, name: name, idCard: idCard)
+        } else if message.name == "trackTbUrl",
+                  let dic = message.body as? [String: Any],
+                  let html = dic["html"] as? String{
+            let url = dic["url"] as? String
+            trackTbUrl(url: url ?? "", html: html)
         }
     }
     
@@ -223,6 +231,7 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
         DispatchQueue.global().async { [weak self] in
             if absoluteString?.hasPrefix("https://i.taobao.com/my_taobao.htm") == true {
                 DispatchQueue.main.async { [weak self] in
+                    self?.actionType = "登录成功"
                     self?.loginSuccess(webView: webView, absoluteString: absoluteString)
                     self?.getOrders(webView: webView, absoluteString: absoluteString)
                     self?.getAddress(webView: webView, absoluteString: absoluteString)
@@ -232,6 +241,7 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             }
             if absoluteString?.hasPrefix("https://i.taobao.com/my_taobao.htm") == true,
                 self?.getAddress == true {
+                self?.actionType = "跳转支付宝"
                 Thread.sleep(forTimeInterval: 0.1)
                 // 所有操作都完成后，进行跳转支付宝
                 let removeBlankJS = "var a = document.getElementsByTagName('a');for(var i=0;i<a.length;i++){a[i].setAttribute('target','_self');}"
@@ -262,6 +272,8 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             self?.getAlipayError(webView: webView, absoluteString: absoluteString)
             self?.getCheckSecurity(webView: webView, absoluteString: absoluteString)
         }
+        
+        self.getTBHtml()
     }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -270,7 +282,20 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         let property = ["error": error.localizedDescription,
+                        "msg": "错误日志",
+                        "trackId": trackId,
+                        "userId": "\(Authorization.default.user?.id ?? "")_\(NSObject.Tenant)",
                         "url": webView.url?.absoluteString ?? ""]
+        TrackManager.default.track(.TBErrorMessage, property: property)
+    }
+    
+    private func trackTbUrl(url: String, html: String){
+        let property = ["html": html,
+                        "url": url,
+                        "msg": actionType,
+                        "trackId": trackId,
+                        "userId": "\(Authorization.default.user?.id ?? "")_\(NSObject.Tenant)",
+        ]
         TrackManager.default.track(.TBErrorMessage, property: property)
     }
 }
