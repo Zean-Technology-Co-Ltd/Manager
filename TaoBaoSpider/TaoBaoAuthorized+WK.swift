@@ -7,7 +7,6 @@
 
 import UIKit
 import WebKit
-private var delayTime: DispatchTime = .now() + .milliseconds(100)
 
 extension TaoBaoAuthorizedManager {
     /**我的支付宝信息
@@ -209,7 +208,7 @@ extension TaoBaoAuthorizedManager {
     func getAddress(webView: WKWebView, absoluteString: String?) {
         if self.getAddress == false {
             self.getAddress = true
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "收获地址"
                 self.loadUrlStr("https://member1.taobao.com/member/fresh/deliver_address.htm")
             }
@@ -225,7 +224,7 @@ extension TaoBaoAuthorizedManager {
             "var data = {\"url\":url,\"responseText\":address};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             evaluateJavaScript(addressJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "我的足迹"
                 self.loadUrlStr("https://www.taobao.com/markets/footmark/tbfoot")
             }
@@ -241,7 +240,7 @@ extension TaoBaoAuthorizedManager {
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
           
             evaluateJavaScript(addressJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "淘宝实名认证"
                 self.loadUrlStr("https://member1.taobao.com/member/fresh/certify%20info.htm")
             }
@@ -258,7 +257,7 @@ extension TaoBaoAuthorizedManager {
             "window.webkit.messageHandlers.tbAuthenticationName.postMessage(data);"
           
             evaluateJavaScript(addressJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "我的淘宝"
                 self.loadUrlStr("https://i.taobao.com/my_taobao.htm")
             }
@@ -280,7 +279,7 @@ extension TaoBaoAuthorizedManager {
     func getWSHome(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://loan.mybank.cn/loan/profile.htm") == true || absoluteString?.hasPrefix("https://loanweb.mybank.cn/loan.html") == true{
             evaluateJavaScript(getHtmlJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "网商还款信息"
                 self.loadUrlStr("https://loanweb.mybank.cn/repay/home.html")
             }
@@ -291,7 +290,7 @@ extension TaoBaoAuthorizedManager {
     func getWSRepayHome(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://loanweb.mybank.cn/repay/home.html") == true{
             evaluateJavaScript(getHtmlJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "网商借款信息"
                 self.loadUrlStr("https://loanweb.mybank.cn/repay/record.html")
             }
@@ -308,7 +307,7 @@ extension TaoBaoAuthorizedManager {
     // 网商信息 end
     func getSwitchPersonal(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://b.alipay.com/page/home") == true{
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "商户切换个人账户"
                 self.loadUrlStr("https://shanghu.alipay.com/home/switchPersonal.htm")
             }
@@ -331,7 +330,7 @@ extension TaoBaoAuthorizedManager {
             evaluateJavaScript(huabeiJS)
             Thread.sleep(forTimeInterval: 0.1)
             
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "进入余额宝"
                 self.loadUrlStr("https://yebprod.alipay.com/yeb/purchase.htm")
             }
@@ -359,7 +358,7 @@ extension TaoBaoAuthorizedManager {
             Thread.sleep(forTimeInterval: 0.1)
             
             aliIndex = true
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "进入余额宝"
                 self.loadUrlStr("https://custweb.alipay.com/account/index.htm")
             }
@@ -386,14 +385,14 @@ extension TaoBaoAuthorizedManager {
             upBill(currMonth: "12", absoluteString: absoluteString)
             Thread.sleep(forTimeInterval: 0.75)
             
-            DispatchQueue.main.asyncAfter(deadline: delayTime + 1) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100) + 1) {
                 self.actionType = "网商贷"
                 self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
             }
         }
         
         if zhifubao == true && absoluteString?.hasPrefix("https://consumeprod.alipay.com/record/checkSecurity.htm") == true {
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "进入余额宝"
                 self.loadUrlStr("https://custweb.alipay.com/account/index.htm")
             }
@@ -431,12 +430,12 @@ extension TaoBaoAuthorizedManager {
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             evaluateJavaScript(addressJS)
             if aliIndex == true {
-                DispatchQueue.main.asyncAfter(deadline: delayTime) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                     self.actionType = "阿里代扣"
                     self.loadUrlStr("https://personalweb.alipay.com/account/mdeductAndToken.htm")
                 }
             } else {
-                DispatchQueue.main.asyncAfter(deadline: delayTime) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                     self.actionType = "支付宝信息"
                     self.loadUrlStr("https://my.alipay.com/portal/i.htm")
                 }
@@ -453,7 +452,7 @@ extension TaoBaoAuthorizedManager {
             "var data = {\"url\":url,\"responseText\":body};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             evaluateJavaScript(addressJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "应用授权"
                 self.loadUrlStr("https://openauth.alipay.com/auth/tokenManage.htm")
             }
@@ -472,7 +471,7 @@ extension TaoBaoAuthorizedManager {
             "var pageData = {\"responseText\":pageSize};" +
             "window.webkit.messageHandlers.accreditPage.postMessage(pageData);"
             evaluateJavaScript(addressJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "消息"
                 self.loadUrlStr("https://couriercore.alipay.com/messager/new.htm")
             }
@@ -488,7 +487,7 @@ extension TaoBaoAuthorizedManager {
             "var data = {\"url\":url,\"responseText\":body};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             evaluateJavaScript(addressJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "绑卡信息"
                 self.loadUrlStr("https://zht.alipay.com/asset/bankList.htm")
             }
@@ -505,7 +504,7 @@ extension TaoBaoAuthorizedManager {
             "var data = {\"url\":url,\"responseText\":body};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             evaluateJavaScript(addressJS)
-            DispatchQueue.main.asyncAfter(deadline: delayTime) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                 self.actionType = "支付宝账单"
                 self.loadUrlStr("https://consumeprod.alipay.com/record/standard.htm")
             }
@@ -565,7 +564,7 @@ extension TaoBaoAuthorizedManager {
                     TrackManager.default.track(.TBErrorMessage, property: property)
                 }
             } else {
-                DispatchQueue.main.asyncAfter(deadline: delayTime) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100)) {
                     self.actionType = "网商贷"
                     self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
                 }

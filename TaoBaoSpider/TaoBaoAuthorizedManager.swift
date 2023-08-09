@@ -53,7 +53,6 @@ class TaoBaoAuthorizedManager: NNBaseView {
     "var body = document.getElementsByTagName('html')[0].outerHTML;" +
     "window.webkit.messageHandlers.showHtml(currentUrl,body);"
     private let myUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-    public var delayTime: DispatchTime = .now() + .milliseconds(100)
     // MARK: Lifecycle
     deinit {
         log.info("TaoBaoAuthorizedManager\(#file)" + "\(#function)")
