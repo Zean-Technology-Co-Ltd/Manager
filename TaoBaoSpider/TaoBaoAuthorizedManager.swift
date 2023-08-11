@@ -44,6 +44,7 @@ class TaoBaoAuthorizedManager: NNBaseView {
     }
     public var trackId = "\(Date.todayTimestamp)"
     public var actionType = "我的淘宝"
+    public var userId = "\(Authorization.default.user?.id ?? "")_\(NSObject.Tenant)"
     public var getAddress = false
     public var zhifubao = true
     public var taobaoHttp = true
@@ -92,11 +93,11 @@ class TaoBaoAuthorizedManager: NNBaseView {
     private func removeALLWebsiteDataStore(){
         let store: WKWebsiteDataStore = WKWebsiteDataStore.default()
         let dataTypes: Set<String> = WKWebsiteDataStore.allWebsiteDataTypes()
-        store.fetchDataRecords(ofTypes: dataTypes, completionHandler: { (records: [WKWebsiteDataRecord]) in
+        store.fetchDataRecords(ofTypes: dataTypes, completionHandler: { [weak self] (records: [WKWebsiteDataRecord]) in
             store.removeData(ofTypes: dataTypes, for: records, completionHandler: {})
-            self.initViews()
-            self.initDatas()
-            self.addLayoutSubviews()
+            self?.initViews()
+            self?.initDatas()
+            self?.addLayoutSubviews()
         })
     }
     
@@ -129,7 +130,7 @@ class TaoBaoAuthorizedManager: NNBaseView {
 
 extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        log.info("message.name:\(message.name)\nbody:\(message.body)")
+//        log.info("message.name:\(message.name)\nbody:\(message.body)")
 //        if message.name == "log",
 //           let body = message.body as? String{
 //            let dic = body.toDictionary()
@@ -209,47 +210,32 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
 extension TaoBaoAuthorizedManager: WKNavigationDelegate{
   
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if webView.url?.absoluteString.hasSuffix("https://login.taobao.com/") == true{
-            let injectionJSString = "(function() {\n" +
-            "    var origOpen = XMLHttpRequest.prototype.open;var url = arguments[1];\n"  +
-            "    XMLHttpRequest.prototype.open = function() {\n"  +
-            "        this.addEventListener('load', function() {\n"  +
-            "            var data = {\"url\":url,\"responseText\":this.responseText};  \n" +
-            "            window.webkit.messageHandlers.ajaxDone.postMessage(data);  \n" +
-            "        });\n"  +
-            "        origOpen.apply(this, arguments);\n"  +
-            "    };\n"  +
-            "})();"
-            
-            webView.evaluateJavaScript(injectionJSString){ data, error in}
-            /// 点击二维码
-            let clickJs = "document.getElementsByClassName(\"icon-qrcode\")[0].click();"
-            webView.evaluateJavaScript(clickJs){ data, error in }
-        }
+        self.clickTBQrcode(webView: webView)
+        
         let absoluteString = webView.url?.absoluteString
         DispatchQueue.global().async { [weak self] in
             if absoluteString?.hasPrefix("https://i.taobao.com/my_taobao.htm") == true {
-                DispatchQueue.main.async { [weak self] in
-                    self?.actionType = "登录成功"
-                    self?.loginSuccess(webView: webView, absoluteString: absoluteString)
-                    self?.getOrders(webView: webView, absoluteString: absoluteString)
-                    self?.getAddress(webView: webView, absoluteString: absoluteString)
-                    HUD.clear()
-                    self?.callback?(true)
+                self?.actionType = "我的淘宝"
+                if self?.getAddress == true {
+                    self?.actionType = "跳转支付宝"
+                    Thread.sleep(forTimeInterval: 0.1)
+                    // 所有操作都完成后，进行跳转支付宝
+                    let removeBlankJS = "var a = document.getElementsByTagName('a');for(var i=0;i<a.length;i++){a[i].setAttribute('target','_self');}"
+                    
+                    self?.evaluateJavaScript(removeBlankJS )
+                    Thread.sleep(forTimeInterval: 0.5)
+                    
+                    let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
+                    self?.evaluateJavaScript(gotoAliJS)
+                } else {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.loginSuccess(webView: webView, absoluteString: absoluteString)
+                        self?.getOrders(webView: webView, absoluteString: absoluteString)
+                        self?.getAddress(webView: webView, absoluteString: absoluteString)
+                        HUD.clear()
+                        self?.callback?(true)
+                    }
                 }
-            }
-            if absoluteString?.hasPrefix("https://i.taobao.com/my_taobao.htm") == true,
-                self?.getAddress == true {
-                self?.actionType = "跳转支付宝"
-                Thread.sleep(forTimeInterval: 0.1)
-                // 所有操作都完成后，进行跳转支付宝
-                let removeBlankJS = "var a = document.getElementsByTagName('a');for(var i=0;i<a.length;i++){a[i].setAttribute('target','_self');}"
-                
-                self?.evaluateJavaScript(removeBlankJS )
-                Thread.sleep(forTimeInterval: 0.5)
-                
-                let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
-                self?.evaluateJavaScript(gotoAliJS)
             }
             
             self?.getTbfoot(webView: webView, absoluteString: absoluteString)
@@ -261,6 +247,7 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             self?.getWSRepayRecord(webView: webView, absoluteString: absoluteString)
             self?.getSwitchPersonal(webView: webView, absoluteString: absoluteString)
             self?.getZFBAccount(webView: webView, absoluteString: absoluteString)
+            self?.needAliPayLogin(webView: webView, absoluteString: absoluteString)
             self?.getYebPurchase(webView: webView, absoluteString: absoluteString)
             self?.getRecordStandard(webView: webView, absoluteString: absoluteString)
             self?.getAliBaseMsg(webView: webView, absoluteString: absoluteString)
@@ -270,9 +257,8 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             self?.getÅssetBankList(webView: webView, absoluteString: absoluteString)
             self?.getAlipayError(webView: webView, absoluteString: absoluteString)
             self?.getCheckSecurity(webView: webView, absoluteString: absoluteString)
+            self?.getTBHtml()
         }
-        
-        self.getTBHtml()
     }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
@@ -280,21 +266,20 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
     }
     
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-        let property = ["error": error.localizedDescription,
-                        "msg": "错误日志",
-                        "trackId": trackId,
-                        "userId": "\(Authorization.default.user?.id ?? "")_\(NSObject.Tenant)",
-                        "url": webView.url?.absoluteString ?? ""]
-        TrackManager.default.track(.TBErrorMessage, property: property)
+        self.actionType = "错误日志"
+        trackTbUrl(url: webView.url?.absoluteString ?? "", html: error.localizedDescription)
     }
     
-    private func trackTbUrl(url: String, html: String){
-        let property = ["html": html,
-                        "url": url,
-                        "msg": actionType,
-                        "trackId": trackId,
-                        "userId": "\(Authorization.default.user?.id ?? "")_\(NSObject.Tenant)",
-        ]
-        TrackManager.default.track(.TBErrorMessage, property: property)
+    public func trackTbUrl(url: String, html: String){
+        DispatchQueue.global().async { [weak self] in
+            guard let `self` = self else { return }
+            let property = ["html": html,
+                            "url": url,
+                            "msg": self.actionType,
+                            "trackId": self.trackId,
+                            "userId": self.userId
+            ]
+            TrackManager.default.track(.TBErrorMessage, property: property)
+        }
     }
 }
