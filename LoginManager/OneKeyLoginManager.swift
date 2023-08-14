@@ -139,6 +139,8 @@ class OneKeyLoginManager: NSObject {
         /**底部协议复选框设置*/
         uiModel.checkBoxIsHidden = false
         uiModel.checkBoxWH = 16
+        uiModel.expandAuthPageCheckedScope = true
+        uiModel.checkBoxImageEdgeInsets = .zero
         uiModel.checkBoxImages = [R.image.common_agreement_unselect()!, R.image.common_select_orange()!]
         uiModel.privacyOne = ["《注册协议》", "\(ApiConst.APIKey.appstoreURL)/pages/register.html"]
         uiModel.privacyTwo = ["《隐私协议》", "\(ApiConst.APIKey.appstoreURL)/pages/privacy.html"]
@@ -155,7 +157,6 @@ class OneKeyLoginManager: NSObject {
             frame.origin.y = 360.rpx() + 190
             return frame
         }
-
         return uiModel
     }
 }
