@@ -42,7 +42,7 @@ class NNNavigationManager: NSObject, RequestAuthorizationPluginUpdate, AccessTok
         case .main:
             let rootVc = NNAppearanceProvider.customStyle()
             rootVc.selectedIndex = 0
-            self.window!.rootViewController = rootVc
+            self.window?.rootViewController = rootVc
         case .loginOut:
             switch self.rootType {
             case .main:
@@ -62,9 +62,9 @@ class NNNavigationManager: NSObject, RequestAuthorizationPluginUpdate, AccessTok
                     self.switchRoot(.main)
                 }
             }
-            self.window!.rootViewController = UINavigationController(rootViewController: rootVc)
+            self.window?.rootViewController = UINavigationController(rootViewController: rootVc)
         }
-        
+        self.window?.makeKeyAndVisible()
         self.rootType = type
     }
     func processUnAuthorisedResponse(_ response: RequestResponse?, message: String?) -> Result<Moya.Response, Moya.MoyaError>? {
