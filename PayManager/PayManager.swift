@@ -35,16 +35,8 @@ class PayManager: NNBaseView {
         if self.paymentType == .wechat {
             let text = "\(ApiConst.WeChat.payUniversalLink)://"
             request.setValue(text, forHTTPHeaderField: "referer")
-        } else {
-            webView.load(request)
         }
         webView.load(request)
-//        webView.evaluateJavaScript("document.title"){ [weak self] title, error in
-//            guard let `self` = self else { return }
-//            guard let title = title as? String else { return }
-//            self.title = title
-//            print("titletitle:\(title)")
-//        }
     }
     
     override func nn_addLayoutSubviews() {
