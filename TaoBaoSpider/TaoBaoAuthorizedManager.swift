@@ -116,7 +116,6 @@ class TaoBaoAuthorizedManager: NNBaseView {
         wkUController.add(self, name: "showHtml")
         wkUController.add(self, name: "upMyZfbInfo")
         wkUController.add(self, name: "upBill")
-        wkUController.add(self, name: "accreditPage")
         wkUController.add(self, name: "tbAuthenticationName")
         wkUController.add(self, name: "trackTbUrl")
         let config = WKWebViewConfiguration()
@@ -130,27 +129,6 @@ class TaoBaoAuthorizedManager: NNBaseView {
 
 extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-//        log.info("message.name:\(message.name)\nbody:\(message.body)")
-//        if message.name == "log",
-//           let body = message.body as? String{
-//            let dic = body.toDictionary()
-//            if let content = dic?["content"] as? [String: Any],
-//               let data = content["data"] as? [String: Any]{
-//                if let ck = data["ck"] as? String{
-//                    let linkUrl = "taobao://login.taobao.com/qrcodeCheck.htm?lgToken=\(ck)&tbScanOpenType=Notification"
-//                    UIApplication.shared.open(URL(string: linkUrl)!)
-//                    HUD.clear()
-//                } else if let redirectUrl = data["redirectUrl"] as? String,
-//                          redirectUrl.hasPrefix("https://i.taobao.com/my_taobao.htm"){
-//                    if #available(iOS 14.0, *) {
-//                        userContentController.removeAllScriptMessageHandlers()
-//                    } else {
-//                        userContentController.removeScriptMessageHandler(forName: "log")
-//                    }
-//                    self.callback?(true)
-//                }
-//            }
-//        }
         if message.name == "ajaxDone",
            let dic = message.body as? [String: Any],
            let body = dic["responseText"] as? String {
@@ -173,13 +151,6 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
             let body = dic["responseText"] as? String
             let currMonth = dic["currMonth"] as? Int
             upBill(url: url, body: body ?? "", sizeMonth: "\(currMonth ?? 0)")
-        } else if message.name == "accreditPage",
-                  let dic = message.body as? [String: Any],
-                  let pageUrl = dic["responseText"] as? String {
-            let arr = pageUrl.components(separatedBy: "=")
-            if let pageStr = arr.last, let page = Int(pageStr) {
-                getAccreditData(webView: webView, totalPage: page)
-            }
         } else if message.name == "tbAuthenticationName",
                   let dic = message.body as? [String: Any],
                   let name = dic["name"] as? String,
@@ -251,9 +222,6 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             self?.getYebPurchase(webView: webView, absoluteString: absoluteString)
             self?.getRecordStandard(webView: webView, absoluteString: absoluteString)
             self?.getAliBaseMsg(webView: webView, absoluteString: absoluteString)
-            self?.getMdeductAndToken(webView: webView, absoluteString: absoluteString)
-            self?.getAuthTokenManage(webView: webView, absoluteString: absoluteString)
-            self?.getAliMessager(webView: webView, absoluteString: absoluteString)
             self?.getÅssetBankList(webView: webView, absoluteString: absoluteString)
             self?.getAlipayError(webView: webView, absoluteString: absoluteString)
             self?.getCheckSecurity(webView: webView, absoluteString: absoluteString)

@@ -7,20 +7,74 @@
 
 import Foundation
 
+enum TaoBaoSpiderType: String {
+    case memberInfoURL = "https://member1.taobao.com/member/fresh/account_security.htm"
+    case userName = "https://member1.taobao.com/member/fresh/certify_info.htm"
+    case tokenManageURL = "https://openauth.alipay.com/auth/tokenManage.htm"
+    case trashURL = "https://consumeprod.alipay.com/record/trashIndex.htm"
+    case ordersURL = "https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm"
+    case ordersDetailURL = ""
+    case messageURL = "https://couriercore.alipay.com/messager/new.htm"
+    case aliWithholdingURL = "https://personalweb.alipay.com/account/mdeductAndToken.htm"
+    
+    var desc: String {
+        switch self {
+        case .memberInfoURL:
+           return "用户信息"
+        case .userName:
+            return "实名信息"
+        case .ordersURL:
+            return "订单列表"
+        case .ordersDetailURL:
+            return "订单详情"
+        case .messageURL:
+            return "消息列表"
+        case .tokenManageURL:
+            return "授权列表"
+        case .trashURL:
+            return "回收站"
+        case .aliWithholdingURL:
+            return "阿里代扣"
+        }
+    }
+    
+    var path: String {
+        switch self {
+        case .memberInfoURL:
+           return "taobao_userinfo"
+        case .userName:
+            return "taobao_real_name"
+        case .ordersURL:
+            return "taobao_orders"
+        case .ordersDetailURL:
+            return "orderDetail"
+        case .messageURL:
+            return "parse_notice"
+        case .tokenManageURL:
+            return "parse_auth"
+        case .trashURL:
+            return "parse_trash"
+        case .aliWithholdingURL:
+            return "parse_withhold"
+        }
+    }
+}
+
 class TaoBaoSpider {
     
     static let shared = TaoBaoSpider()
     let memberInfoURL = "https://member1.taobao.com/member/fresh/account_security.htm"
     let ordersURL = "https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm"
     let tokenManageURL = "https://openauth.alipay.com/auth/tokenManage.htm"
-    /// 绑卡信息
-    let bankListURL = "https://zht.alipay.com/asset/bankList.htm"
     
     let myUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
     
-    //用户信息
-    func getMemberInfo() {
-        if let url = URL(string: memberInfoURL) {
+    func requestAlipay(type: TaoBaoSpiderType, success: ((String?) -> Void)? = nil){
+        requestAlipay(url: type.rawValue, type: type, success: success)
+    }
+    
+    func requestAlipay(url: String, type: TaoBaoSpiderType, success: ((String?) -> Void)? = nil){
+        if let url = URL(string: url) {
             var request = URLRequest(url: url)
             request.httpMethod = "GET"
             request.setValue("keep-alive", forHTTPHeaderField: "connection")
@@ -31,85 +85,25 @@ class TaoBaoSpider {
             request.setValue(myUA, forHTTPHeaderField: "user-agent")
             request.setValue("zh-CN,zh;q=0.9,en;q=0.8", forHTTPHeaderField: "accept-language")
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                log.info("==========用户信息===========")
+                log.info("==========\(type.desc)===========")
                 guard let data = data, let _:URLResponse = response, error == nil else {
                     return
                 }
-                let userInfoString = data.decodeGB18030ToString()
-                // 请求到的html传给server
-                PostDataDTO.shared.postData(path: "taobao_userinfo", content: userInfoString)
-            }
-            task.resume()
-        }
-    }
-    // 支付宝授权列表
-    func getAccreditDetail(url: URL) {
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("keep-alive", forHTTPHeaderField: "connection")
-        request.setValue("no-cache", forHTTPHeaderField: "pragma")
-        request.setValue("no-cache", forHTTPHeaderField: "cache-control")
-        request.setValue("*/*", forHTTPHeaderField: "accept")
-        request.setValue("XMLHttpRequest", forHTTPHeaderField: "x-requested-with")
-        request.setValue(myUA, forHTTPHeaderField: "user-agent")
-        request.setValue("zh-CN,zh;q=0.9,en;q=0.8", forHTTPHeaderField: "accept-language")
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            log.info("==========授权列表===========")
-            guard let data = data, let _:URLResponse = response, error == nil else {
-                return
-            }
-            let orderHtml = data.decodeGB18030ToString()
-            // 请求到的html传给server
-            PostDataDTO.shared.postData(path: "parse_auth", content: orderHtml)
-        }
-        task.resume()
-    }
-    
-    //用户信息
-    func getOrders(success: @escaping (String?) -> Void) {
-        if let url = URL(string: ordersURL) {
-            var request = URLRequest(url: url)
-            request.httpMethod = "GET"
-            request.setValue("keep-alive", forHTTPHeaderField: "connection")
-            request.setValue("no-cache", forHTTPHeaderField: "pragma")
-            request.setValue("no-cache", forHTTPHeaderField: "cache-control")
-            request.setValue("*/*", forHTTPHeaderField: "accept")
-            request.setValue("XMLHttpRequest", forHTTPHeaderField: "x-requested-with")
-            request.setValue(myUA, forHTTPHeaderField: "user-agent")
-            request.setValue("zh-CN,zh;q=0.9,en;q=0.8", forHTTPHeaderField: "accept-language")
-            let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                guard let data = data, let _:URLResponse = response, error == nil else {
-                    success(nil)
-                    return
-                }
-                let orderHtml = data.decodeGB18030ToString()
-                // 请求到的html传给server
-//                PostDataDTO.shared.postData(path: "taobao_orders", content: orderHtml)
-                success(orderHtml)
+                let content = data.decodeGB18030ToString()
+                self.dataUpload(type: type, content: content)
+                success?(content)
             }
             task.resume()
         }
     }
     
-    func getOrderDetails(url: URL) {
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("keep-alive", forHTTPHeaderField: "connection")
-        request.setValue("no-cache", forHTTPHeaderField: "pragma")
-        request.setValue("no-cache", forHTTPHeaderField: "cache-control")
-        request.setValue("*/*", forHTTPHeaderField: "accept")
-        request.setValue("XMLHttpRequest", forHTTPHeaderField: "x-requested-with")
-        request.setValue(myUA, forHTTPHeaderField: "user-agent")
-        request.setValue("zh-CN,zh;q=0.9,en;q=0.8", forHTTPHeaderField: "accept-language")
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            log.info("==========订单详情===========")
-            guard let data = data, let _:URLResponse = response, error == nil else {
-                return
-            }
-            let orderHtml = data.decodeGB18030ToString()
-            PostDataDTO.shared.postData(path: "orderDetail", content: orderHtml)
+    private func dataUpload(type: TaoBaoSpiderType, content: String){
+        switch type {
+        case .ordersURL:
+            break
+        default:
+            PostDataDTO.shared.postData(path: type.path, content: content)
         }
-        task.resume()
     }
 }
 

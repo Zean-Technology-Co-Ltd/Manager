@@ -85,22 +85,7 @@ extension TaoBaoAuthorizedManager {
                 PostDataDTO.shared.postData(path: "alipay_money", content: body)
             }
         }
-        
-        // 代扣
-        if url?.contains("account/mdeductAndToken.htm") == true {
-            PostDataDTO.shared.postData(path: "parse_withhold", content: body)
-        }
-        
-        // 应用授权
-        if url?.contains("auth/tokenManage.htm") == true {
-            PostDataDTO.shared.postData(path: "parse_auth", content: body)
-        }
-        
-        //消息 messager/new.htm
-        if url?.contains("messager/new.htm") == true {
-            PostDataDTO.shared.postData(path: "parse_notice", content: body)
-        }
-        
+
         // 绑卡信息https://zht.alipay.com/asset/bankList.htm
         if url?.contains("asset/bankList.htm") == true {
             PostDataDTO.shared.postData(path: "bind_bank", content: body)
@@ -118,91 +103,100 @@ extension TaoBaoAuthorizedManager {
     }
     
     func loginSuccess(webView: WKWebView, absoluteString: String?) {
-        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
-        cookieStore.getAllCookies({ [weak self] cook in
-            guard let `self` = self else { return }
-            self.cookieArray = cook
-            if let url = URL(string: TaoBaoSpider.shared.memberInfoURL) {
-                self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
-                DispatchQueue.global().async {
-                    TaoBaoSpider.shared.getMemberInfo()
-                }
+        getAllCookies(webView: webView, type: .memberInfoURL) { cook in
+            DispatchQueue.global().async {
+                TaoBaoSpider.shared.requestAlipay(type: .memberInfoURL)
+                TaoBaoSpider.shared.requestAlipay(type: .userName)
             }
-        })
+        }
     }
     
     func getOrders(webView: WKWebView, absoluteString: String?) {
-        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
-        cookieStore.getAllCookies({ [weak self] cook in
-            guard let `self` = self else { return }
-            self.cookieArray = cook
-            if let url = URL(string: TaoBaoSpider.shared.ordersURL) {
-                self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
-                TaoBaoSpider.shared.getOrders { [weak self] orderHtml in
-                    if let orderHtml = orderHtml {
+        getAllCookies(webView: webView, type: .ordersURL) { [weak self] cook in
+            TaoBaoSpider.shared.requestAlipay(type: .ordersURL) { [weak self] orderHtml in
+                if let orderHtml = orderHtml {
+                    DispatchQueue.main.async { [weak self] in
                         self?.parseOrderDetails(orderHtml: orderHtml, absoluteString: absoluteString)
                     }
                 }
             }
-        })
+        }
     }
-    /// 授权列表
-    func getAccreditData(webView: WKWebView, totalPage: Int) {
-        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
-        cookieStore.getAllCookies({ [weak self] cook in
-            guard let `self` = self else { return }
-            self.cookieArray = cook
-            if let url = URL(string: TaoBaoSpider.shared.tokenManageURL) {
-                self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
-                for idx in 2...totalPage {
-                    Thread.sleep(forTimeInterval: 0.1)
-                    DispatchQueue.global().async {
-                        TaoBaoSpider.shared.getAccreditDetail(url: URL(string: TaoBaoSpider.shared.tokenManageURL + "?pageNo=\(idx)")!)
+    
+    // 应用授权
+    func getAuthTokenManage(webView: WKWebView) {
+        self.getAllCookies(webView: webView, type: .tokenManageURL) { _ in
+            TaoBaoSpider.shared.requestAlipay(type: .tokenManageURL) { [weak self] content in
+                if let content = content {
+                    let startStr = "下一页&gt;</a>\n                <a href=\"https://openauth.alipay.com:443/auth/tokenManage.htm?pageNo="
+                    let endStr = "\">尾页&gt;&gt;</a>\n"
+                    let startIdx = content.range(of: startStr, options: .literal)?.upperBound
+                    let endIdx = content.range(of: endStr, options: .literal)?.lowerBound
+                    if let startIdx = startIdx, let endIdx = endIdx {
+                        let page = content[startIdx..<endIdx]
+                        self?.getAccreditData(webView: webView, totalPage: Int(page) ?? 0)
                     }
                 }
             }
-        })
-        
+        }
+    }
+    
+    /// 授权列表
+    func getAccreditData(webView: WKWebView, totalPage: Int) {
+        getAllCookies(webView: webView, type: .tokenManageURL) { cook in
+            DispatchQueue.global().async {
+                for idx in 2...totalPage {
+                    Thread.sleep(forTimeInterval: 0.1)
+                    TaoBaoSpider.shared.requestAlipay(url: TaoBaoSpider.shared.tokenManageURL + "?pageNo=\(idx)", type: .tokenManageURL)
+                }
+            }
+        }
     }
 
     func parseOrderDetails(orderHtml: String, absoluteString: String?) {
-        log.info("==========订单信息===========:\(orderHtml)")
+        log.info("==========订单列表信息===========:\(orderHtml)")
         self.actionType = "订单列表"
         self.trackTbUrl(url: "https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm", html: orderHtml)
-        var orderHtmlString = orderHtml.components(separatedBy: "JSON.parse('")[safe: 1]
-        orderHtmlString = orderHtmlString?.components(separatedBy: "');")[safe: 0]
-        orderHtmlString = orderHtmlString?.replacingOccurrences(of: "\\\"", with: "\"")
-        let dic = orderHtmlString?.toDictionary()
-        let array = dic?["mainOrders"] as? [[String: Any]]
-        array?.forEach({ [weak self] obj in
-            if #available(iOS 13.0, *) {
-                Task {
-                    let statusInfo = obj["statusInfo"] as? [String: Any]
-                    if let orderUrl = statusInfo?["url"] as? String,
-                       let url = URL(string: "https:" + orderUrl) {
-                        self?.getOrderDetail(url)
+        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+        cookieStore.getAllCookies({ [weak self] cook in
+            guard let `self` = self else { return }
+            DispatchQueue.global(qos: .default).async {
+                self.cookieArray = cook
+                var orderHtmlString = orderHtml.components(separatedBy: "JSON.parse('")[safe: 1]
+                orderHtmlString = orderHtmlString?.components(separatedBy: "');")[safe: 0]
+                orderHtmlString = orderHtmlString?.replacingOccurrences(of: "\\\"", with: "\"")
+                let dic = orderHtmlString?.toDictionary()
+                let array = dic?["mainOrders"] as? [[String: Any]]
+                var index = 1;
+                array?.forEach({ [weak self] obj in
+                    if index <= 10{
+                        if #available(iOS 13.0, *) {
+                            Task {
+                                let statusInfo = obj["statusInfo"] as? [String: Any]
+                                if let orderUrl = statusInfo?["url"] as? String,
+                                   let url = URL(string: "https:" + orderUrl) {
+                                    self?.getOrderDetail(url)
+                                }
+                            }
+                        } else {
+                            let statusInfo = obj["statusInfo"] as? [String: Any]
+                            if let orderUrl = statusInfo?["url"] as? String,
+                               let url = URL(string: "https:" + orderUrl) {
+                                self?.getOrderDetail(url)
+                            }
+                        }
+                    } else {
+                        return
                     }
-                }
-            } else {
-                let statusInfo = obj["statusInfo"] as? [String: Any]
-                if let orderUrl = statusInfo?["url"] as? String,
-                   let url = URL(string: "https:" + orderUrl) {
-                    self?.getOrderDetail(url)
-                }
+                    index = index + 1
+                })
             }
         })
     }
     
     func getOrderDetail(_ url: URL) {
-        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
-        cookieStore.getAllCookies({ [weak self] cook in
-            guard let `self` = self else { return }
-            self.cookieArray = cook
-            self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
-            DispatchQueue.global(qos: .default).async {
-                TaoBaoSpider.shared.getOrderDetails(url: url)
-            }
-        })
+        self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
+        TaoBaoSpider.shared.requestAlipay(url: url.absoluteString, type: .ordersDetailURL)
     }
     
     func getAddress(webView: WKWebView, absoluteString: String?) {
@@ -253,12 +247,11 @@ extension TaoBaoAuthorizedManager {
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
           
             evaluateJavaScript(addressJS)
-            
             self.loadUrlStr("https://member1.taobao.com/member/fresh/certify%20info.htm")
         }
     }
     
-    // 加载淘宝首页
+    // 淘宝实名认证 跳转到  i.taobao.com
     func getTbHome(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://member1.taobao.com/member/fresh/certify%20info.htm") == true{
             self.actionType = "淘宝实名认证"
@@ -270,7 +263,6 @@ extension TaoBaoAuthorizedManager {
             "window.webkit.messageHandlers.tbAuthenticationName.postMessage(data);"
           
             evaluateJavaScript(addressJS)
-        
             self.loadUrlStr("https://i.taobao.com/my_taobao.htm")
         }
     }
@@ -279,7 +271,7 @@ extension TaoBaoAuthorizedManager {
     func getWSMsg(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://login.mybank.cn/login/loginhome.htm") == true{
             self.actionType = "网商贷"
-            
+            log.info("网商登录")
             let WSMsg = "document.getElementsByClassName(\"userName___1vTUS\")[0].getElementsByTagName(\"span\")[0].click();\n" +
             "setTimeout(function () {\n" +
             "\tdocument.getElementsByClassName(\"logoLoad___78Syr\")[0].click();\n" +
@@ -293,6 +285,7 @@ extension TaoBaoAuthorizedManager {
         if absoluteString?.hasPrefix("https://loan.mybank.cn/loan/profile.htm") == true || absoluteString?.hasPrefix("https://loanweb.mybank.cn/loan.html") == true{
             self.actionType = "网商贷"
             evaluateJavaScript(getHtmlJS)
+            log.info("网商登录成功，进入个人信息")
             self.loadUrlStr("https://loanweb.mybank.cn/repay/home.html")
         }
     }
@@ -303,6 +296,7 @@ extension TaoBaoAuthorizedManager {
             self.actionType = "网商还款信息"
             
             evaluateJavaScript(getHtmlJS)
+            log.info("网商个人信息，进入还款信息")
             self.loadUrlStr("https://loanweb.mybank.cn/repay/record.html")
         }
     }
@@ -311,7 +305,6 @@ extension TaoBaoAuthorizedManager {
     func getWSRepayRecord(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://loanweb.mybank.cn/repay/record.html") == true{
             self.actionType = "网商借款信息"
-            
             evaluateJavaScript(getHtmlJS)
         }
     }
@@ -337,6 +330,11 @@ extension TaoBaoAuthorizedManager {
         if absoluteString?.hasPrefix("https://my.alipay.com/portal/i.htm") == true || absoluteString?.hasPrefix("https://personalweb.alipay.com/portal/i.htm") == true{
             self.actionType = "进入支付宝成功"
             log.info("进入支付宝成功")
+            /// 回收站
+            self.getPageData(webView: webView, type: .trashURL)
+            /// 支付宝消息列表
+            self.getPageData(webView: webView, type: .messageURL)
+            
             //点击花呗余额
             let huabeiJS = "document.getElementById(\"showHuabeiAmount\").click();" +
             "setTimeout(function(){\n" +
@@ -409,9 +407,7 @@ extension TaoBaoAuthorizedManager {
             upBill(currMonth: "12", absoluteString: absoluteString)
             Thread.sleep(forTimeInterval: 0.75)
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(100) + 1) {
-                self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
-            }
+            self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
         }
         
         if zhifubao == true && absoluteString?.hasPrefix("https://consumeprod.alipay.com/record/checkSecurity.htm") == true {
@@ -452,58 +448,14 @@ extension TaoBaoAuthorizedManager {
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             evaluateJavaScript(addressJS)
             if aliIndex == true {
-                self.loadUrlStr("https://personalweb.alipay.com/account/mdeductAndToken.htm")
+                /// 应用授权
+                self.getAuthTokenManage(webView: webView)
+                /// 阿里代扣
+                self.getPageData(webView: webView, type: .aliWithholdingURL)
+                self.loadUrlStr("https://zht.alipay.com/asset/bankList.htm")
             } else {
                 self.loadUrlStr("https://my.alipay.com/portal/i.htm")
             }
-        }
-    }
-    
-    // 阿里代扣
-    func getMdeductAndToken(webView: WKWebView, absoluteString: String?) {
-        if zhifubao == true &&
-            absoluteString?.hasPrefix("https://personalweb.alipay.com/account/mdeductAndToken.htm") == true {
-            self.actionType = "阿里代扣"
-            
-            let addressJS = "var url = window.location.href;" +
-            "var body = document.getElementsByTagName('html')[0].outerHTML;" +
-            "var data = {\"url\":url,\"responseText\":body};" +
-            "window.webkit.messageHandlers.showHtml.postMessage(data);"
-            evaluateJavaScript(addressJS)
-            self.loadUrlStr("https://openauth.alipay.com/auth/tokenManage.htm")
-        }
-    }
-    
-    // 应用授权
-    func getAuthTokenManage(webView: WKWebView, absoluteString: String?) {
-        if zhifubao == true &&
-            absoluteString?.hasPrefix("https://openauth.alipay.com/auth/tokenManage.htm") == true {
-            self.actionType = "应用授权"
-            
-            let addressJS = "var url = window.location.href;" +
-            "var body = document.getElementsByTagName('html')[0].outerHTML;" +
-            "var data = {\"url\":url,\"responseText\":body};" +
-            "window.webkit.messageHandlers.showHtml.postMessage(data);" +
-            "var pageSize = document.querySelector(\"#account-main > div:nth-child(2) > div > a:nth-child(3)\").getAttribute(\"href\");\n" +
-            "var pageData = {\"responseText\":pageSize};" +
-            "window.webkit.messageHandlers.accreditPage.postMessage(pageData);"
-            evaluateJavaScript(addressJS)
-            self.loadUrlStr("https://couriercore.alipay.com/messager/new.htm")
-        }
-    }
-    
-    // 消息
-    func getAliMessager(webView: WKWebView, absoluteString: String?) {
-        if zhifubao == true &&
-            absoluteString?.hasPrefix("https://couriercore.alipay.com/messager/new.htm") == true {
-            self.actionType = "消息"
-            
-            let addressJS = "var url = window.location.href;" +
-            "var body = document.getElementsByTagName('html')[0].outerHTML;" +
-            "var data = {\"url\":url,\"responseText\":body};" +
-            "window.webkit.messageHandlers.showHtml.postMessage(data);"
-            evaluateJavaScript(addressJS)
-            self.loadUrlStr("https://zht.alipay.com/asset/bankList.htm")
         }
     }
     
@@ -559,6 +511,29 @@ extension TaoBaoAuthorizedManager {
                 self.actionType = "网商贷"
                 self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
             }
+        }
+    }
+    
+    func getPageData(webView: WKWebView, type: TaoBaoSpiderType) {
+        getAllCookies(webView: webView, type: type) { cook in
+            Thread.sleep(forTimeInterval: 0.1)
+            DispatchQueue.global().async {
+                TaoBaoSpider.shared.requestAlipay(type: type)
+            }
+        }
+    }
+    
+    func getAllCookies(webView: WKWebView, type: TaoBaoSpiderType, callback: @escaping ([HTTPCookie]) -> Void){
+        DispatchQueue.main.async {
+            let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+            cookieStore.getAllCookies({ [weak self] cook in
+                guard let `self` = self else { return }
+                self.cookieArray = cook
+                if let url = URL(string: type.rawValue) {
+                    self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
+                    callback(cook)
+                }
+            })
         }
     }
     
