@@ -76,18 +76,27 @@ extension PayManager: WKNavigationDelegate{
     }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        let reqUrl = navigationAction.request.url
-        log.info("reqUrl.absoluteStrin:\(reqUrl?.absoluteString ?? "")")
-        if let reqUrl = reqUrl,
-           reqUrl.absoluteString.hasPrefix("alipays://") || reqUrl.absoluteString.hasPrefix("alipay://") {
-            UIApplication.shared.open(reqUrl){ bSucc in
+        var payReqUrl = navigationAction.request.url
+        log.info("reqUrl.absoluteStrin:\(navigationAction.request.url?.absoluteString ?? "")")
+        if var payReqUrl = payReqUrl,
+           payReqUrl.absoluteString.hasPrefix("alipays://") || payReqUrl.absoluteString.hasPrefix("alipay://") {
+            if let payReqStr = payReqUrl.absoluteString.removingPercentEncoding,
+               payReqStr.contains("fromAppUrlScheme\":\"alipays\"") == true,
+               let urlStr = payReqStr
+                .replacingOccurrences(of: "fromAppUrlScheme\":\"alipays\"", with:  "fromAppUrlScheme\":\"\(ApiConst.WeChat.payUniversalLink)\"")
+                .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+               let url = URL(string: urlStr){
+                payReqUrl = url
+            }
+            
+            UIApplication.shared.open(payReqUrl){ bSucc in
                 if (!bSucc) {
                     Toast.showInfo("未检测到支付宝客户端，请安装后重试。")
                 }
                 self.removeFromSuperview()
             }
             decisionHandler(WKNavigationActionPolicy.cancel)
-        } else if let reqUrl = reqUrl,
+        } else if let reqUrl = payReqUrl,
                   reqUrl.absoluteString.hasPrefix("weixin://wap/pay") {
             UIApplication.shared.open(reqUrl){ bSucc in
                 if (!bSucc) {
