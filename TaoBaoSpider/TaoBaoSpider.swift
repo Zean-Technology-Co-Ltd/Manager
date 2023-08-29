@@ -89,7 +89,10 @@ class TaoBaoSpider {
                 guard let data = data, let _:URLResponse = response, error == nil else {
                     return
                 }
-                let content = data.decodeGB18030ToString()
+                var content = data.decodeGB18030ToString()
+                if content == "" {
+                    content = String(data: data, encoding: .utf8) ?? ""
+                }
                 self.dataUpload(type: type, content: content)
                 success?(content)
             }

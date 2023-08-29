@@ -34,8 +34,15 @@
 import UIKit
 import WebKit
 
+enum TBAuthorizedType {
+    case password
+    case qrcode
+    case smsCode
+}
+
 class TaoBaoAuthorizedManager: NNBaseView {
     private var callback: ((Bool)->Void)?
+    private var loginType: TBAuthorizedType = .qrcode
     public var cookieArray: [HTTPCookie] = []
     public var storage: HTTPCookieStorage {
         let storage = HTTPCookieStorage.shared
@@ -50,9 +57,10 @@ class TaoBaoAuthorizedManager: NNBaseView {
     public var taobaoHttp = true
     public var aliIndex = false
     public var scanNum = 0
-    public let getHtmlJS = "var currentUrl = window.location.href;" +
+    public let getHtmlJS = "var url = window.location.href;" +
     "var body = document.getElementsByTagName('html')[0].outerHTML;" +
-    "window.webkit.messageHandlers.showHtml(currentUrl,body);"
+    "var data = {\"url\":url,\"responseText\":body};" +
+    "window.webkit.messageHandlers.showHtml.postMessage(data);"
     private let myUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
     // MARK: Lifecycle
     deinit {
@@ -60,8 +68,9 @@ class TaoBaoAuthorizedManager: NNBaseView {
         
     }
     
-    convenience init(callback: @escaping ((Bool)->Void)) {
+    convenience init(loginType: TBAuthorizedType = .qrcode,callback: @escaping ((Bool)->Void)) {
         self.init()
+        self.loginType = loginType
         self.callback = callback
     }
     
@@ -78,16 +87,67 @@ class TaoBaoAuthorizedManager: NNBaseView {
         var request =  URLRequest(url: URL(string: linkUrl)!, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
         request.setValue("User-Agent", forHTTPHeaderField: myUA)
         webView.load(request)
-        HUD.wait(info: "跳转中...")
+        if self.loginType == .qrcode {
+            HUD.wait(info: "跳转中...")
+        }
     }
     
     private func addLayoutSubviews (){
+#if DEBUG
+        webView.frame = UIScreen.screenBounds
+#else
         webView.frame = .zero
+#endif
+       
+    }
+    // MARK: Event Response
+    // MARK: Public Method
+    public func loginWithPassword(account: String, password: String){
+        if loginType != .password { return }
+        HUD.wait(info: "授权中...")
+        let accountJs = "document.querySelector(\"#fm-login-id\").value = " + "'\(account)'"
+        self.evaluateJavaScript(accountJs)
+        Thread.sleep(forTimeInterval: 0.5)
+        let passwordJs = "document.querySelector(\"#fm-login-password\").value = " + "'\(password)'"
+        self.evaluateJavaScript(passwordJs)
+        Thread.sleep(forTimeInterval: 0.5)
+        let loginJs = "document.querySelector(\"#login-form > div.fm-btn > button\").click()"
+        self.evaluateJavaScript(loginJs)
     }
     
-    // MARK: Event Response
+    public func loginWithVerificationCode(mobile: String, verificationCode: String){
+        HUD.wait(info: "授权中...")
+        if loginType != .smsCode { return }
+//        let mobileJs = "document.querySelector(\"#fm-sms-login-id\").value = " + mobile
+//        self.evaluateJavaScript(mobileJs)
+//        Thread.sleep(forTimeInterval: 0.5)
+        let verificationCodeJs = "document.querySelector(\"#fm-smscode\").value = " + verificationCode
+        self.evaluateJavaScript(verificationCodeJs)
+        Thread.sleep(forTimeInterval: 0.5)
+        let loginJs = "document.querySelector(\"#login-form > div.fm-btn > button\").click()"
+        self.evaluateJavaScript(loginJs)
+    }
+
+    public func sendVerificationCode(mobile: String){
+        if loginType != .smsCode { return }
+        let mobileJs = "document.querySelector(\"#fm-sms-login-id\").value = " + mobile
+        self.evaluateJavaScript(mobileJs)
+        Thread.sleep(forTimeInterval: 0.5)
+        
+        let loginJs = "document.querySelector(\"#login-form > div.fm-field.fm-field-sms > div.send-btn > a\").click()"
+        self.evaluateJavaScript(loginJs)
+    }
     
-    // MARK: Public Method
+    public func updateLoginType(type: TBAuthorizedType){
+        self.loginType = type
+        if type == .password {
+            let loginJs = "document.querySelector(\"#login > div.login-content.nc-outer-box > div > div.login-blocks.login-switch-tab > a.password-login-tab-item\").click()"
+            self.evaluateJavaScript(loginJs)
+        } else if type == .smsCode{
+            let loginJs = "document.querySelector(\"#login > div.login-content.nc-outer-box > div > div.login-blocks.login-switch-tab > a.sms-login-tab-item\").click()"
+            self.evaluateJavaScript(loginJs)
+        }
+    }
     
     // MARK: Private Method
     private func removeALLWebsiteDataStore(){
@@ -181,9 +241,17 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
 extension TaoBaoAuthorizedManager: WKNavigationDelegate{
   
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        self.clickTBQrcode(webView: webView)
-        
         let absoluteString = webView.url?.absoluteString
+        if loginType == .qrcode {
+            self.clickTBQrcode(webView: webView)
+        } else {
+            if absoluteString?.hasPrefix("https://login.taobao.com/member/login_unusual.htm") == true {
+                let linkUrl = "taobao://s.taobao.com"
+                UIApplication.shared.open(URL(string: linkUrl)!)
+            }
+        }
+    
+        log.debug("webViewDidFinish:\(absoluteString ?? "")")
         DispatchQueue.global().async { [weak self] in
             if absoluteString?.hasPrefix("https://i.taobao.com/my_taobao.htm") == true {
                 self?.actionType = "我的淘宝"

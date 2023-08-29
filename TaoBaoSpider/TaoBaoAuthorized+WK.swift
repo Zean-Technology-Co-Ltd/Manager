@@ -284,7 +284,7 @@ extension TaoBaoAuthorizedManager {
     func getWSHome(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://loan.mybank.cn/loan/profile.htm") == true || absoluteString?.hasPrefix("https://loanweb.mybank.cn/loan.html") == true{
             self.actionType = "网商贷"
-            evaluateJavaScript(getHtmlJS)
+            self.evaluateJavaScript(getHtmlJS)
             log.info("网商登录成功，进入个人信息")
             self.loadUrlStr("https://loanweb.mybank.cn/repay/home.html")
         }
@@ -515,7 +515,7 @@ extension TaoBaoAuthorizedManager {
     }
     
     func getPageData(webView: WKWebView, type: TaoBaoSpiderType) {
-        getAllCookies(webView: webView, type: type) { cook in
+        self.getAllCookies(webView: webView, type: type) { cook in
             Thread.sleep(forTimeInterval: 0.1)
             DispatchQueue.global().async {
                 TaoBaoSpider.shared.requestAlipay(type: type)
