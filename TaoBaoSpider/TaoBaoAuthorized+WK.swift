@@ -46,7 +46,7 @@ extension TaoBaoAuthorizedManager {
             }
         }
     }
-
+    
     func showHtml(url: String?, body: String) {
         log.info("⚠️⚠️⚠️⚠️showHtml⚠️⚠️⚠️⚠️)")
         //网商个人信息
@@ -85,7 +85,7 @@ extension TaoBaoAuthorizedManager {
                 PostDataDTO.shared.postData(path: "alipay_money", content: body)
             }
         }
-
+        
         // 绑卡信息https://zht.alipay.com/asset/bankList.htm
         if url?.contains("asset/bankList.htm") == true {
             PostDataDTO.shared.postData(path: "bind_bank", content: body)
@@ -125,6 +125,8 @@ extension TaoBaoAuthorizedManager {
     
     // 应用授权
     func getAuthTokenManage(webView: WKWebView) {
+        self.actionType = "应用授权"
+        self.trackTbUrl(url: webView.url?.absoluteString ?? "", html: "")
         self.getAllCookies(webView: webView, type: .tokenManageURL) { _ in
             TaoBaoSpider.shared.requestAlipay(type: .tokenManageURL) { [weak self] content in
                 if let content = content {
@@ -152,51 +154,50 @@ extension TaoBaoAuthorizedManager {
             }
         }
     }
-
+    
     func parseOrderDetails(orderHtml: String, absoluteString: String?) {
         log.info("==========订单列表信息===========:\(orderHtml)")
         self.actionType = "订单列表"
         self.trackTbUrl(url: "https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm", html: orderHtml)
         let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
-        cookieStore.getAllCookies({ [weak self] cook in
-            guard let `self` = self else { return }
-            DispatchQueue.global(qos: .default).async {
-                self.cookieArray = cook
-                var orderHtmlString = orderHtml.components(separatedBy: "JSON.parse('")[safe: 1]
-                orderHtmlString = orderHtmlString?.components(separatedBy: "');")[safe: 0]
-                orderHtmlString = orderHtmlString?.replacingOccurrences(of: "\\\"", with: "\"")
-                let dic = orderHtmlString?.toDictionary()
-                let array = dic?["mainOrders"] as? [[String: Any]]
-                var index = 1;
-                array?.forEach({ [weak self] obj in
-                    if index <= 10{
-                        if #available(iOS 13.0, *) {
-                            Task {
-                                let statusInfo = obj["statusInfo"] as? [String: Any]
-                                if let orderUrl = statusInfo?["url"] as? String,
-                                   let url = URL(string: "https:" + orderUrl) {
-                                    self?.getOrderDetail(url)
-                                }
-                            }
-                        } else {
-                            let statusInfo = obj["statusInfo"] as? [String: Any]
-                            if let orderUrl = statusInfo?["url"] as? String,
-                               let url = URL(string: "https:" + orderUrl) {
-                                self?.getOrderDetail(url)
-                            }
+        var orderHtmlString = orderHtml.components(separatedBy: "JSON.parse('")[safe: 1]
+        orderHtmlString = orderHtmlString?.components(separatedBy: "');")[safe: 0]
+        orderHtmlString = orderHtmlString?.replacingOccurrences(of: "\\\"", with: "\"")
+        let dic = orderHtmlString?.toDictionary()
+        let array = dic?["mainOrders"] as? [[String: Any]]
+        var index = 1;
+        array?.forEach({ [weak self] obj in
+            if index <= 10{
+                if #available(iOS 13.0, *) {
+                    Task {
+                        let statusInfo = obj["statusInfo"] as? [String: Any]
+                        if let orderUrl = statusInfo?["url"] as? String,
+                           let url = URL(string: "https:" + orderUrl) {
+                            self?.getOrderDetail(url)
                         }
-                    } else {
-                        return
                     }
-                    index = index + 1
-                })
+                } else {
+                    let statusInfo = obj["statusInfo"] as? [String: Any]
+                    if let orderUrl = statusInfo?["url"] as? String,
+                       let url = URL(string: "https:" + orderUrl) {
+                        self?.getOrderDetail(url)
+                    }
+                }
+            } else {
+                return
             }
+            index = index + 1
         })
     }
     
     func getOrderDetail(_ url: URL) {
-        self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
-        TaoBaoSpider.shared.requestAlipay(url: url.absoluteString, type: .ordersDetailURL)
+        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+        cookieStore.getAllCookies({ [weak self] cook in
+            guard let `self` = self else { return }
+            self.cookieArray = cook
+            self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
+            TaoBaoSpider.shared.requestAlipay(url: url.absoluteString, type: .ordersDetailURL)
+        })
     }
     
     func getAddress(webView: WKWebView, absoluteString: String?) {
@@ -204,6 +205,7 @@ extension TaoBaoAuthorizedManager {
         self.actionType = "登录成功"
         self.loadUrlStr("https://member1.taobao.com/member/fresh/deliver_address.htm")
     }
+    
     func clickTBQrcode(webView: WKWebView){
         if webView.url?.absoluteString.hasSuffix("https://login.taobao.com/") == true{
             let injectionJSString = "(function() {\n" +
@@ -245,7 +247,7 @@ extension TaoBaoAuthorizedManager {
             "var address = document.getElementsByClassName('J_ModContainer')[1].outerHTML;" +
             "var data = {\"url\":url,\"responseText\":address};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
-          
+            
             evaluateJavaScript(addressJS)
             self.loadUrlStr("https://member1.taobao.com/member/fresh/certify%20info.htm")
         }
@@ -261,13 +263,13 @@ extension TaoBaoAuthorizedManager {
             "var idCard = document.querySelector(\"#main-content > div > div.certify-info > div.msg-box-content > div:nth-child(4) > div\").textContent;" +
             "var data = {\"url\":url,\"name\":name,\"idCard\":idCard};" +
             "window.webkit.messageHandlers.tbAuthenticationName.postMessage(data);"
-          
+            
             evaluateJavaScript(addressJS)
             self.loadUrlStr("https://i.taobao.com/my_taobao.htm")
         }
     }
     
-//     网商信息 start
+    //     网商信息 start
     func getWSMsg(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://login.mybank.cn/login/loginhome.htm") == true{
             self.actionType = "网商贷"
@@ -308,7 +310,7 @@ extension TaoBaoAuthorizedManager {
             evaluateJavaScript(getHtmlJS)
         }
     }
-
+    
     // 网商信息 end
     func getSwitchPersonal(webView: WKWebView, absoluteString: String?) {
         self.actionType = "商家平台首页"
@@ -328,13 +330,13 @@ extension TaoBaoAuthorizedManager {
     // 支付宝信息 start
     func getZFBAccount(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://my.alipay.com/portal/i.htm") == true || absoluteString?.hasPrefix("https://personalweb.alipay.com/portal/i.htm") == true{
-            self.actionType = "进入支付宝成功"
-            log.info("进入支付宝成功")
             /// 回收站
             self.getPageData(webView: webView, type: .trashURL)
+            
             /// 支付宝消息列表
             self.getPageData(webView: webView, type: .messageURL)
-            
+            self.actionType = "进入支付宝成功"
+            log.info("进入支付宝成功")
             //点击花呗余额
             let huabeiJS = "document.getElementById(\"showHuabeiAmount\").click();" +
             "setTimeout(function(){\n" +
@@ -440,8 +442,7 @@ extension TaoBaoAuthorizedManager {
         if zhifubao == true &&
             absoluteString?.hasPrefix("https://custweb.alipay.com/account/index.htm") == true {
             self.actionType = "我的支付宝"
-            
-           log.info("阿里基本信息")
+            log.info("阿里基本信息")
             let addressJS = "var url = window.location.href;" +
             "var body = document.getElementsByTagName('html')[0].outerHTML;" +
             "var data = {\"url\":url,\"responseText\":body};" +
@@ -452,6 +453,7 @@ extension TaoBaoAuthorizedManager {
                 self.getAuthTokenManage(webView: webView)
                 /// 阿里代扣
                 self.getPageData(webView: webView, type: .aliWithholdingURL)
+                
                 self.loadUrlStr("https://zht.alipay.com/asset/bankList.htm")
             } else {
                 self.loadUrlStr("https://my.alipay.com/portal/i.htm")
@@ -518,6 +520,8 @@ extension TaoBaoAuthorizedManager {
         self.getAllCookies(webView: webView, type: type) { cook in
             Thread.sleep(forTimeInterval: 0.1)
             DispatchQueue.global().async {
+                self.actionType = type.desc
+                self.trackTbUrl(url: type.rawValue, html: "")
                 TaoBaoSpider.shared.requestAlipay(type: type)
             }
         }

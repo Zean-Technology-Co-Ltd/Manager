@@ -102,39 +102,47 @@ class TaoBaoAuthorizedManager: NNBaseView {
     }
     // MARK: Event Response
     // MARK: Public Method
-    public func loginWithPassword(account: String, password: String){
+    public func updateAccount(account: String){
         if loginType != .password { return }
-        HUD.wait(info: "授权中...")
         let accountJs = "document.querySelector(\"#fm-login-id\").value = " + "'\(account)'"
         self.evaluateJavaScript(accountJs)
-        Thread.sleep(forTimeInterval: 0.5)
+    }
+    
+    public func updatePassword(password: String){
+        if loginType != .password { return }
         let passwordJs = "document.querySelector(\"#fm-login-password\").value = " + "'\(password)'"
         self.evaluateJavaScript(passwordJs)
-        Thread.sleep(forTimeInterval: 0.5)
+    }
+    
+    public func loginWithPassword(){
+        if loginType != .password { return }
+        HUD.wait(info: "授权中...")
         let loginJs = "document.querySelector(\"#login-form > div.fm-btn > button\").click()"
         self.evaluateJavaScript(loginJs)
     }
     
-    public func loginWithVerificationCode(mobile: String, verificationCode: String){
-        HUD.wait(info: "授权中...")
-        if loginType != .smsCode { return }
-//        let mobileJs = "document.querySelector(\"#fm-sms-login-id\").value = " + mobile
-//        self.evaluateJavaScript(mobileJs)
-//        Thread.sleep(forTimeInterval: 0.5)
-        let verificationCodeJs = "document.querySelector(\"#fm-smscode\").value = " + verificationCode
-        self.evaluateJavaScript(verificationCodeJs)
-        Thread.sleep(forTimeInterval: 0.5)
-        let loginJs = "document.querySelector(\"#login-form > div.fm-btn > button\").click()"
-        self.evaluateJavaScript(loginJs)
-    }
-
-    public func sendVerificationCode(mobile: String){
+    public func updateMobile(mobile: String){
         if loginType != .smsCode { return }
         let mobileJs = "document.querySelector(\"#fm-sms-login-id\").value = " + mobile
         self.evaluateJavaScript(mobileJs)
-        Thread.sleep(forTimeInterval: 0.5)
-        
+    }
+    
+    public func updateSmsCode(smsCode: String){
+        if loginType != .smsCode { return }
+        let verificationCodeJs = "document.querySelector(\"#fm-smscode\").value = " + smsCode
+        self.evaluateJavaScript(verificationCodeJs)
+    }
+
+    public func sendVerificationCode(){
+        if loginType != .smsCode { return }
         let loginJs = "document.querySelector(\"#login-form > div.fm-field.fm-field-sms > div.send-btn > a\").click()"
+        self.evaluateJavaScript(loginJs)
+    }
+    
+    public func loginWithVerificationCode(){
+        if loginType != .smsCode { return }
+        HUD.wait(info: "授权中...")
+        let loginJs = "document.querySelector(\"#login-form > div.fm-btn > button\").click()"
         self.evaluateJavaScript(loginJs)
     }
     
@@ -244,11 +252,6 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
         let absoluteString = webView.url?.absoluteString
         if loginType == .qrcode {
             self.clickTBQrcode(webView: webView)
-        } else {
-            if absoluteString?.hasPrefix("https://login.taobao.com/member/login_unusual.htm") == true {
-                let linkUrl = "taobao://s.taobao.com"
-                UIApplication.shared.open(URL(string: linkUrl)!)
-            }
         }
     
         log.debug("webViewDidFinish:\(absoluteString ?? "")")
