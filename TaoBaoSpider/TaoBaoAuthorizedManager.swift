@@ -255,6 +255,7 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
         }
     
         log.debug("webViewDidFinish:\(absoluteString ?? "")")
+        // [步骤1]，扫码成功后，进入了淘宝首页
         DispatchQueue.global().async { [weak self] in
             if absoluteString?.hasPrefix("https://i.taobao.com/my_taobao.htm") == true {
                 self?.actionType = "我的淘宝"
@@ -271,18 +272,22 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
                     self?.evaluateJavaScript(gotoAliJS)
                 } else {
                     DispatchQueue.main.async { [weak self] in
+                        // 协议获取淘宝个人信息
                         self?.loginSuccess(webView: webView, absoluteString: absoluteString)
+                        // 协议获取订单信息
                         self?.getOrders(webView: webView, absoluteString: absoluteString)
+                        // [步骤2] 跳转到收货地址信息
                         self?.getAddress(webView: webView, absoluteString: absoluteString)
                         HUD.clear()
                         self?.callback?(true)
                     }
                 }
             }
-            
+            // 获取我的足迹
             self?.getTbfoot(webView: webView, absoluteString: absoluteString)
-            self?.getTbAuthenticationName(webView: webView, absoluteString: absoluteString)
+            // 返回淘宝首页
             self?.getTbHome(webView: webView, absoluteString: absoluteString)
+            //
             self?.getWSMsg(webView: webView, absoluteString: absoluteString)
             self?.getWSHome(webView: webView, absoluteString: absoluteString)
             self?.getWSRepayHome(webView: webView, absoluteString: absoluteString)

@@ -234,12 +234,13 @@ extension TaoBaoAuthorizedManager {
             "var data = {\"url\":url,\"responseText\":address};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             evaluateJavaScript(addressJS)
+            // [步骤3] 从 收货地址界面  跳转到   足迹界面
             self.loadUrlStr("https://www.taobao.com/markets/footmark/tbfoot")
         }
     }
     
-    // 加载淘宝实名认证页面
-    func getTbAuthenticationName(webView: WKWebView, absoluteString: String?) {
+    // 重新跳转到淘宝个人界面
+    func getTbHome(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://www.taobao.com/markets/footmark/tbfoot") == true{
             self.actionType = "我的足迹"
             
@@ -249,27 +250,11 @@ extension TaoBaoAuthorizedManager {
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             
             evaluateJavaScript(addressJS)
-            self.loadUrlStr("https://member1.taobao.com/member/fresh/certify%20info.htm")
-        }
-    }
-    
-    // 淘宝实名认证 跳转到  i.taobao.com
-    func getTbHome(webView: WKWebView, absoluteString: String?) {
-        if absoluteString?.hasPrefix("https://member1.taobao.com/member/fresh/certify%20info.htm") == true{
-            self.actionType = "淘宝实名认证"
-            
-            let addressJS = "var url = window.location.href;" +
-            "var name = document.querySelector(\"#main-content > div > div.certify-info > div.msg-box-content > div:nth-child(3) > div\").textContent;" +
-            "var idCard = document.querySelector(\"#main-content > div > div.certify-info > div.msg-box-content > div:nth-child(4) > div\").textContent;" +
-            "var data = {\"url\":url,\"name\":name,\"idCard\":idCard};" +
-            "window.webkit.messageHandlers.tbAuthenticationName.postMessage(data);"
-            
-            evaluateJavaScript(addressJS)
+            // [步骤4] 重新跳转到淘宝个人界面
             self.loadUrlStr("https://i.taobao.com/my_taobao.htm")
         }
     }
-    
-    //     网商信息 start
+    // 网商信息 start
     func getWSMsg(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://login.mybank.cn/login/loginhome.htm") == true{
             self.actionType = "网商贷"
