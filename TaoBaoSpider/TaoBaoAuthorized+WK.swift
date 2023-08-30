@@ -35,18 +35,6 @@ extension TaoBaoAuthorizedManager {
         }
     }
     
-    /// 账单
-    func upBill(url: String?, body: String, sizeMonth: String) {
-        log.info("upBill账单明细: \(url ?? "")" + "月数: \(sizeMonth)")
-        if url?.contains("https://consumeprod.alipay.com/record/standard.htm") == true{
-            if sizeMonth == "3" {
-                PostDataDTO.shared.postData(path: "three_month_repay", content: body)
-            } else {
-                PostDataDTO.shared.postData(path: "alipay_money", content: body, month: "\(sizeMonth)")
-            }
-        }
-    }
-    
     func showHtml(url: String?, body: String) {
         log.info("⚠️⚠️⚠️⚠️showHtml⚠️⚠️⚠️⚠️)")
         //网商个人信息
@@ -72,18 +60,14 @@ extension TaoBaoAuthorizedManager {
         // 我的足迹 footmark/tbfoot
         if url?.contains("footmark/tbfoot") == true {
             PostDataDTO.shared.postData(path: "foot_mark", content: body)
+            if body.contains(find: "已售罄") || body.contains(find: "找相似") {
+                self.tbFootReloadCount = 100
+            }
         }
         
         //账号信息 account/index.htm
         if url?.contains("https://custweb.alipay.com/account/index.htm") == true {
             PostDataDTO.shared.postData(path: "parse_alipay_base_info", content: body)
-        }
-        
-        //金额统计
-        if url?.contains("https://consumeprod.alipay.com/record/standard.htm") == true {
-            if body.hasPrefix("已支出") == true {
-                PostDataDTO.shared.postData(path: "alipay_money", content: body)
-            }
         }
         
         // 绑卡信息https://zht.alipay.com/asset/bankList.htm
@@ -124,9 +108,9 @@ extension TaoBaoAuthorizedManager {
     }
     
     // 应用授权
-    func getAuthTokenManage(webView: WKWebView) {
+    func getAuthTokenManage(webView: WKWebView, absoluteString: String?) {
         self.actionType = "应用授权"
-        self.trackTbUrl(url: webView.url?.absoluteString ?? "", html: "")
+        self.trackTbUrl(url: absoluteString ?? "", html: "")
         self.getAllCookies(webView: webView, type: .tokenManageURL) { _ in
             TaoBaoSpider.shared.requestAlipay(type: .tokenManageURL) { [weak self] content in
                 if let content = content {
@@ -159,7 +143,6 @@ extension TaoBaoAuthorizedManager {
         log.info("==========订单列表信息===========:\(orderHtml)")
         self.actionType = "订单列表"
         self.trackTbUrl(url: "https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm", html: orderHtml)
-        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
         var orderHtmlString = orderHtml.components(separatedBy: "JSON.parse('")[safe: 1]
         orderHtmlString = orderHtmlString?.components(separatedBy: "');")[safe: 0]
         orderHtmlString = orderHtmlString?.replacingOccurrences(of: "\\\"", with: "\"")
@@ -191,6 +174,7 @@ extension TaoBaoAuthorizedManager {
     }
     
     func getOrderDetail(_ url: URL) {
+        Thread.sleep(forTimeInterval: 0.1)
         let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
         cookieStore.getAllCookies({ [weak self] cook in
             guard let `self` = self else { return }
@@ -233,7 +217,7 @@ extension TaoBaoAuthorizedManager {
             "var address = document.getElementsByClassName(\"next-table-body\")[0].outerHTML;" +
             "var data = {\"url\":url,\"responseText\":address};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
-            evaluateJavaScript(addressJS)
+            self.evaluateJavaScript(addressJS)
             // [步骤3] 从 收货地址界面  跳转到   足迹界面
             self.loadUrlStr("https://www.taobao.com/markets/footmark/tbfoot")
         }
@@ -243,15 +227,20 @@ extension TaoBaoAuthorizedManager {
     func getTbHome(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://www.taobao.com/markets/footmark/tbfoot") == true{
             self.actionType = "我的足迹"
-            
             let addressJS = "var url = window.location.href;" +
             "var address = document.getElementsByClassName('J_ModContainer')[1].outerHTML;" +
             "var data = {\"url\":url,\"responseText\":address};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
-            
-            evaluateJavaScript(addressJS)
-            // [步骤4] 重新跳转到淘宝个人界面
-            self.loadUrlStr("https://i.taobao.com/my_taobao.htm")
+//            if tbFootReloadCount < 3 {
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+//                    self?.evaluateJavaScript(addressJS)
+//                    webView.reload()
+//                    self?.tbFootReloadCount += 1
+//                }
+//            } else {
+//                // [步骤4] 重新跳转到淘宝个人界面
+                self.loadUrlStr("https://i.taobao.com/my_taobao.htm")
+//            }
         }
     }
     // 网商信息 start
@@ -322,21 +311,31 @@ extension TaoBaoAuthorizedManager {
             self.getPageData(webView: webView, type: .messageURL)
             self.actionType = "进入支付宝成功"
             log.info("进入支付宝成功")
-            //点击花呗余额
-            let huabeiJS = "document.getElementById(\"showHuabeiAmount\").click();" +
-            "setTimeout(function(){\n" +
-            "var url = window.location.href;\n" +
-            "var text1 = document.querySelector(\"#account-amount-container\").textContent;\n" +
-            "var text2 = document.querySelector(\"#credit-amount-container\").textContent;\n" +
-            "var data = {\"url\":url,\"t1\":text1,\"t2\":text2,\"type\":3};" +
-            "window.webkit.messageHandlers.upMyZfbInfo.postMessage(data);\n" +
-            "},100);"
-            evaluateJavaScript(huabeiJS)
-            Thread.sleep(forTimeInterval: 0.1)
+            // [步骤6] 点击花呗余额
+//            //点击花呗余额
+//            let huabeiJS = "document.getElementById(\"showHuabeiAmount\").click();" +
+//            "setTimeout(function(){\n" +
+//            "var url = window.location.href;\n" +
+//            "var text1 = document.querySelector(\"#account-amount-container\").textContent;\n" +
+//            "var text2 = document.querySelector(\"#credit-amount-container\").textContent;\n" +
+//            "var data = {\"url\":url,\"t1\":text1,\"t2\":text2,\"type\":3};" +
+//            "window.webkit.messageHandlers.upMyZfbInfo.postMessage(data);\n" +
+//            "},100);"
+//            evaluateJavaScript(huabeiJS)
+//            Thread.sleep(forTimeInterval: 0.1)
             
+            // [步骤7] 从支付宝首页跳转到余额宝首页
             self.loadUrlStr("https://yebprod.alipay.com/yeb/purchase.htm")
         }
     }
+    // 若未开通余额宝，直接获取阿里基本信息
+    func getYebShowContract(webView: WKWebView, absoluteString: String?) {
+        if absoluteString?.contains(find: "https://yebprod.alipay.com/yeb/showContract.htm") == true {
+            self.aliIndex = true
+            self.loadUrlStr("https://custweb.alipay.com/account/index.htm")
+        }
+    }
+    
     /// 需要支付宝登录
     func needAliPayLogin(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.contains(find: "alipay.com/login/trustLoginResultDispatch.htm") == true{
@@ -372,56 +371,6 @@ extension TaoBaoAuthorizedManager {
         }
     }
     
-    // 支付宝交易记录
-    func getRecordStandard(webView: WKWebView, absoluteString: String?) {
-        if absoluteString?.hasPrefix("https://consumeprod.alipay.com/record/standard.htm") == true {
-            self.actionType = "支付宝交易记录"
-            
-            log.info("进入交易记录")
-            Thread.sleep(forTimeInterval: 0.1)
-            upBill(currMonth: "1", absoluteString: absoluteString)
-            Thread.sleep(forTimeInterval: 0.75)
-            
-            var jS = "document.querySelector(\"#J-three-month\").click();"
-            evaluateJavaScript(jS)
-            Thread.sleep(forTimeInterval: 0.1)
-            upBill(currMonth: "3", absoluteString: absoluteString)
-            Thread.sleep(forTimeInterval: 0.75)
-            
-            jS = "document.querySelector(\"#J-one-year\").click();"
-            evaluateJavaScript(jS)
-            Thread.sleep(forTimeInterval: 0.1)
-            upBill(currMonth: "12", absoluteString: absoluteString)
-            Thread.sleep(forTimeInterval: 0.75)
-            
-            self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
-        }
-        
-        if zhifubao == true && absoluteString?.hasPrefix("https://consumeprod.alipay.com/record/checkSecurity.htm") == true {
-            self.loadUrlStr("https://custweb.alipay.com/account/index.htm")
-        }
-        
-        func upBill(currMonth: String, absoluteString: String?){
-            var monthJs = "var data = {\"url\":url,\"responseText\":address,\"currMonth\": 1};"
-            if currMonth == "3" {
-                monthJs = "var data = {\"url\":url,\"responseText\":address,\"currMonth\": 3};"
-            }
-            if currMonth == "12" {
-                monthJs = "var data = {\"url\":url,\"responseText\":address,\"currMonth\": 12};"
-            }
-            let addressJS = "document.getElementsByClassName(\"action-content\")[0].getElementsByClassName(\"amount-links\")[0].click();" +
-            "setTimeout(function(){\n" +
-            "var url = window.location.href;\n" +
-            "var address = document.getElementsByClassName(\"amount-detail\")[0].innerHTML;\n" +
-            monthJs +
-            "window.webkit.messageHandlers.showHtml.postMessage(data);" +
-            //上报明细
-            "window.webkit.messageHandlers.upBill.postMessage(data);" +
-            "},500);"
-            evaluateJavaScript(addressJS)
-        }
-    }
-    
     // 阿里基本信息
     func getAliBaseMsg(webView: WKWebView, absoluteString: String?) {
         if zhifubao == true &&
@@ -435,7 +384,7 @@ extension TaoBaoAuthorizedManager {
             evaluateJavaScript(addressJS)
             if aliIndex == true {
                 /// 应用授权
-                self.getAuthTokenManage(webView: webView)
+                self.getAuthTokenManage(webView: webView, absoluteString: absoluteString)
                 /// 阿里代扣
                 self.getPageData(webView: webView, type: .aliWithholdingURL)
                 
@@ -458,7 +407,7 @@ extension TaoBaoAuthorizedManager {
             "var data = {\"url\":url,\"responseText\":body};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
             evaluateJavaScript(addressJS)
-            self.loadUrlStr("https://consumeprod.alipay.com/record/standard.htm")
+            self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
         }
     }
     

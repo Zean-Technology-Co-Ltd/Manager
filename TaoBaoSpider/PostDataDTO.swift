@@ -21,8 +21,6 @@ class PostDataDTO {
         if let month = month {
             parameters["month"] = month
         }
-        log.info("path:\(path)")
-        log.info("parameters:\(parameters)")
         postData(path: path, parameters: parameters)
     }
     
@@ -46,7 +44,8 @@ class PostDataDTO {
                         return
                     }
                     let dataString = self.DataToObject(data)
-                    log.info("dataString is \(dataString ?? "")\npath:\(path)")
+                    log.info("path:\(path) \nparameters:\(parameters)")
+                    log.info("dataString is \(dataString ?? "")")
                 }
                 task.resume()
             }

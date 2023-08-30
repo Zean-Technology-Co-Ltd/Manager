@@ -57,6 +57,8 @@ class TaoBaoAuthorizedManager: NNBaseView {
     public var taobaoHttp = true
     public var aliIndex = false
     public var scanNum = 0
+    public var toTbAuth = false
+    public var tbFootReloadCount = 0
     public let getHtmlJS = "var url = window.location.href;" +
     "var body = document.getElementsByTagName('html')[0].outerHTML;" +
     "var data = {\"url\":url,\"responseText\":body};" +
@@ -183,7 +185,6 @@ class TaoBaoAuthorizedManager: NNBaseView {
         wkUController.add(self, name: "ajaxDone")
         wkUController.add(self, name: "showHtml")
         wkUController.add(self, name: "upMyZfbInfo")
-        wkUController.add(self, name: "upBill")
         wkUController.add(self, name: "tbAuthenticationName")
         wkUController.add(self, name: "trackTbUrl")
         let config = WKWebViewConfiguration()
@@ -213,12 +214,6 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
             let t2 = dic["t2"] as? String
             let type = dic["type"] as? Int
             upMyZfbInfo(url: url, t1: t1 ?? "", t2: t2 ?? "", type: type ?? 0)
-        } else if message.name == "upBill",
-                  let dic = message.body as? [String: Any],
-                  let url = dic["url"] as? String {
-            let body = dic["responseText"] as? String
-            let currMonth = dic["currMonth"] as? Int
-            upBill(url: url, body: body ?? "", sizeMonth: "\(currMonth ?? 0)")
         } else if message.name == "tbAuthenticationName",
                   let dic = message.body as? [String: Any],
                   let name = dic["name"] as? String,
@@ -239,6 +234,7 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
             if let data = content["data"] as? [String: Any],
                let ck = data["ck"] as? String {
                 HUD.wait(info: "授权中...")
+                self.toTbAuth = true
                 let linkUrl = "taobao://login.taobao.com/qrcodeCheck.htm?lgToken=\(ck)&tbScanOpenType=Notification"
                 UIApplication.shared.open(URL(string: linkUrl)!)
             }
@@ -267,22 +263,26 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
                     
                     self?.evaluateJavaScript(removeBlankJS )
                     Thread.sleep(forTimeInterval: 0.5)
-                    
+                    // [步骤5] 从淘宝，跳转到 支付宝
                     let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
                     self?.evaluateJavaScript(gotoAliJS)
                 } else {
-                    DispatchQueue.main.async { [weak self] in
-                        // 协议获取淘宝个人信息
-                        self?.loginSuccess(webView: webView, absoluteString: absoluteString)
-                        // 协议获取订单信息
-                        self?.getOrders(webView: webView, absoluteString: absoluteString)
-                        // [步骤2] 跳转到收货地址信息
-                        self?.getAddress(webView: webView, absoluteString: absoluteString)
-                        HUD.clear()
-                        self?.callback?(true)
-                    }
+                    self?.toTbAuth = false
+                    self?.getTbBasicsMsg(webView, absoluteString: absoluteString)
+                    
                 }
             }
+            
+            if absoluteString?.hasPrefix("https://login.taobao.com/member/login_unusual.htm") == true {
+                Toast.showInfo("请打开淘宝进行二次授权", clearTime: 5)
+            }
+                
+            // 二次验证处理
+            if self?.toTbAuth == true, absoluteString?.hasPrefix("https://www.taobao.com/") == true {
+                self?.getTbBasicsMsg(webView, absoluteString: absoluteString)
+                self?.toTbAuth = false
+            }
+            
             // 获取我的足迹
             self?.getTbfoot(webView: webView, absoluteString: absoluteString)
             // 返回淘宝首页
@@ -294,9 +294,10 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             self?.getWSRepayRecord(webView: webView, absoluteString: absoluteString)
             self?.getSwitchPersonal(webView: webView, absoluteString: absoluteString)
             self?.getZFBAccount(webView: webView, absoluteString: absoluteString)
+            // 若未开通余额宝，直接获取阿里基本信息
+            self?.getYebShowContract(webView: webView, absoluteString: absoluteString)
             self?.needAliPayLogin(webView: webView, absoluteString: absoluteString)
             self?.getYebPurchase(webView: webView, absoluteString: absoluteString)
-            self?.getRecordStandard(webView: webView, absoluteString: absoluteString)
             self?.getAliBaseMsg(webView: webView, absoluteString: absoluteString)
             self?.getÅssetBankList(webView: webView, absoluteString: absoluteString)
             self?.getAlipayError(webView: webView, absoluteString: absoluteString)
@@ -324,6 +325,19 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
                             "userId": self.userId
             ]
             TrackManager.default.track(.TBErrorMessage, property: property)
+        }
+    }
+    
+    private func getTbBasicsMsg(_ webView: WKWebView, absoluteString: String?){
+        DispatchQueue.main.async { [weak self] in
+            // 协议获取淘宝个人信息
+            self?.loginSuccess(webView: webView, absoluteString: absoluteString)
+            // 协议获取订单信息
+            self?.getOrders(webView: webView, absoluteString: absoluteString)
+            // [步骤2] 跳转到收货地址信息
+            self?.getAddress(webView: webView, absoluteString: absoluteString)
+            HUD.clear()
+            self?.callback?(true)
         }
     }
 }

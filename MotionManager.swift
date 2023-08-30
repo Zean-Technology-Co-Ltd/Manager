@@ -24,7 +24,7 @@ class MotionManager: NSObject {
                 log.info("userAcceleration:\(userAcceleration)")
                 
                 //值越大说明摇动的幅度越大
-                let num = 0.3
+                let num = 0.2
                 if (fabs(userAcceleration.x) > num) || (fabs(userAcceleration.y) > num) || (fabs(userAcceleration.z) > num) {
                     //停止更新
                     self?.stopMotion()
