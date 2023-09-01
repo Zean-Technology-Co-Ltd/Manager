@@ -233,7 +233,7 @@ extension TaoBaoAuthorizedManager {
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
 //            if tbFootReloadCount < 3 {
 //                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-//                    self?.evaluateJavaScript(addressJS)
+                    self.evaluateJavaScript(addressJS)
 //                    webView.reload()
 //                    self?.tbFootReloadCount += 1
 //                }
