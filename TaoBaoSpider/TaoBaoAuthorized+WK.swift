@@ -184,6 +184,40 @@ extension TaoBaoAuthorizedManager {
         })
     }
     
+    // 回收站列表
+    func getTrashPageList(webView: WKWebView, absoluteString: String?) {
+        self.actionType = "回收站列表"
+        self.trackTbUrl(url: absoluteString ?? "", html: "")
+        self.getAllCookies(webView: webView, type: .trashURL) { _ in
+            TaoBaoSpider.shared.requestAlipay(type: .trashURL) { [weak self] content in
+                if let content = content {
+                    let startStr = "下一页&gt;</a>\n                        <a class=\"page-end\" href=\"https://consumeprod.alipay.com:443/record/trashIndex.htm?dateType=deleteDate&orderBy=desc&pageNum="
+                    let endStr = "\">尾页&gt;&gt;</a>\n"
+                    let startIdx = content.range(of: startStr, options: .literal)?.upperBound
+                    let endIdx = content.range(of: endStr, options: .literal)?.lowerBound
+                    if let startIdx = startIdx, let endIdx = endIdx {
+                        let page = content[startIdx..<endIdx]
+                        self?.getTrashPage(webView: webView, totalPage: Int(page) ?? 0, type: .trashURL)
+                    }
+                }
+            }
+        }
+    }
+
+    /// 回收站
+    func getTrashPage(webView: WKWebView, totalPage: Int, type: TaoBaoSpiderType) {
+        getAllCookies(webView: webView, type: type) { cook in
+            DispatchQueue.global().async {
+                let page = totalPage > 10 ? 10:totalPage
+                for idx in 2...page {
+                    Thread.sleep(forTimeInterval: 0.1)
+                    TaoBaoSpider.shared.requestAlipay(url: type.rawValue + "?dateType=deleteDate&orderBy=desc&pageNum=\(idx)", type: type)
+                }
+            }
+        }
+    }
+    
+    
     func getAddress(webView: WKWebView, absoluteString: String?) {
         self.getAddress = true
         self.actionType = "登录成功"
@@ -227,13 +261,13 @@ extension TaoBaoAuthorizedManager {
     func getTbHome(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://www.taobao.com/markets/footmark/tbfoot") == true{
             self.actionType = "我的足迹"
-            let addressJS = "var url = window.location.href;" +
+            let footJS = "var url = window.location.href;" +
             "var address = document.getElementsByClassName('J_ModContainer')[1].outerHTML;" +
             "var data = {\"url\":url,\"responseText\":address};" +
             "window.webkit.messageHandlers.showHtml.postMessage(data);"
 //            if tbFootReloadCount < 3 {
 //                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-                    self.evaluateJavaScript(addressJS)
+//                    self.evaluateJavaScript(footJS)
 //                    webView.reload()
 //                    self?.tbFootReloadCount += 1
 //                }
@@ -305,7 +339,7 @@ extension TaoBaoAuthorizedManager {
     func getZFBAccount(webView: WKWebView, absoluteString: String?) {
         if absoluteString?.hasPrefix("https://my.alipay.com/portal/i.htm") == true || absoluteString?.hasPrefix("https://personalweb.alipay.com/portal/i.htm") == true{
             /// 回收站
-            self.getPageData(webView: webView, type: .trashURL)
+            self.getTrashPageList(webView: webView, absoluteString: absoluteString)
             
             /// 支付宝消息列表
             self.getPageData(webView: webView, type: .messageURL)
