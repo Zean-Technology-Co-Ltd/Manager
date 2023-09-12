@@ -90,18 +90,6 @@ extension TaoBaoAuthorizedManager {
         }
     }
     
-    func getOrders(webView: WKWebView, absoluteString: String?) {
-        getAllCookies(webView: webView, type: .ordersURL) { [weak self] cook in
-            TaoBaoSpider.shared.requestAlipay(type: .ordersURL) { [weak self] orderHtml in
-                if let orderHtml = orderHtml {
-                    DispatchQueue.main.async { [weak self] in
-                        self?.parseOrderDetails(orderHtml: orderHtml, absoluteString: absoluteString)
-                    }
-                }
-            }
-        }
-    }
-    
     // 授权列表
     func getAuthTokenManageList(webView: WKWebView, absoluteString: String?) {
         self.actionType = "应用授权"
@@ -134,8 +122,20 @@ extension TaoBaoAuthorizedManager {
             }
         }
     }
+    func getOrders(webView: WKWebView, absoluteString: String?) {
+        getAllCookies(webView: webView, type: .ordersURL) { [weak self] cook in
+            TaoBaoSpider.shared.requestAlipay(type: .ordersURL) { [weak self] orderHtml in
+                if let orderHtml = orderHtml {
+                    DispatchQueue.main.async { [weak self] in
+                        self?.parseOrderDetails(orderHtml: orderHtml, absoluteString: absoluteString)
+                    }
+                }
+            }
+        }
+    }
+    
     // 订单列表
-    func parseOrderDetails(orderHtml: String, absoluteString: String?) {
+   private func parseOrderDetails(orderHtml: String, absoluteString: String?) {
         log.info("==========订单列表信息===========:\(orderHtml)")
         self.actionType = "订单列表"
         self.trackTbUrl(url: "https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm", html: orderHtml)
@@ -168,10 +168,10 @@ extension TaoBaoAuthorizedManager {
             index = index + 1
         })
     }
-    
+
     private func getOrderDetail(_ url: URL) {
-        Thread.sleep(forTimeInterval: 0.1)
-        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+        log.debug("订单详情：\(url)")
+        let cookieStore = self.webView.configuration.websiteDataStore.httpCookieStore
         cookieStore.getAllCookies({ [weak self] cook in
             guard let `self` = self else { return }
             self.cookieArray = cook
