@@ -15,7 +15,9 @@ enum TaoBaoSpiderType: String {
     case ordersURL = "https://buyertrade.taobao.com/trade/itemlist/list_bought_items.htm"
     case ordersDetailURL = ""
     case messageURL = "https://couriercore.alipay.com/messager/new.htm"
-    case aliWithholdingURL = "https://personalweb.alipay.com/account/mdeductAndToken.htm"
+    case mdeductAndTokenURL = "https://personalweb.alipay.com/account/mdeductAndToken.htm"
+    case yebPurchaseURL = "https://yebprod.alipay.com/yeb/purchase.htm"
+    case aliAccountIndexURL = "https://custweb.alipay.com/account/index.htm"
     
     var desc: String {
         switch self {
@@ -33,8 +35,12 @@ enum TaoBaoSpiderType: String {
             return "授权列表"
         case .trashURL:
             return "回收站"
-        case .aliWithholdingURL:
+        case .mdeductAndTokenURL:
             return "阿里代扣"
+        case .yebPurchaseURL:
+            return "支付宝余额"
+        case .aliAccountIndexURL:
+            return "支付宝基本信息"
         }
     }
     
@@ -54,8 +60,12 @@ enum TaoBaoSpiderType: String {
             return "parse_auth"
         case .trashURL:
             return "parse_trash"
-        case .aliWithholdingURL:
+        case .mdeductAndTokenURL:
             return "parse_withhold"
+        case .yebPurchaseURL:
+            return "yue_money"
+        case .aliAccountIndexURL:
+            return "parse_alipay_base_info"
         }
     }
 }

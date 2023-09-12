@@ -58,6 +58,7 @@ class TaoBaoAuthorizedManager: NNBaseView {
     public var aliIndex = false
     public var scanNum = 0
     public var toTbAuth = false
+    public var isAuthored = false
     public var tbFootReloadCount = 0
     public let getHtmlJS = "var url = window.location.href;" +
     "var body = document.getElementsByTagName('html')[0].outerHTML;" +
@@ -95,12 +96,7 @@ class TaoBaoAuthorizedManager: NNBaseView {
     }
     
     private func addLayoutSubviews (){
-#if DEBUG
         webView.frame = UIScreen.screenBounds
-#else
-        webView.frame = .zero
-#endif
-       
     }
     // MARK: Event Response
     // MARK: Public Method
@@ -233,10 +229,15 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
         if let content = content?["content"] as? [String: Any] {
             if let data = content["data"] as? [String: Any],
                let ck = data["ck"] as? String {
-                HUD.wait(info: "授权中...")
-                self.toTbAuth = true
                 let linkUrl = "taobao://login.taobao.com/qrcodeCheck.htm?lgToken=\(ck)&tbScanOpenType=Notification"
-                UIApplication.shared.open(URL(string: linkUrl)!)
+                guard let url = URL(string: linkUrl) else { return }
+                if UIApplication.shared.canOpenURL(url) {
+                    HUD.wait(info: "授权中...")
+                    self.toTbAuth = true
+                    UIApplication.shared.open(url)
+                } else {
+                    HUD.showError("请安装淘宝客户端")
+                }
             }
         }
     }
@@ -264,12 +265,11 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
                     self?.evaluateJavaScript(removeBlankJS )
                     Thread.sleep(forTimeInterval: 0.5)
                     // [步骤5] 从淘宝，跳转到 支付宝
-                    let gotoAliJS = "document.getElementById(\"J_MyAlipayInfo\").getElementsByTagName(\"a\")[1].click()"
+                    let gotoAliJS = "document.querySelector(\"#J_MyAlipayInfo > span > a\").click()"
                     self?.evaluateJavaScript(gotoAliJS)
                 } else {
-                    self?.toTbAuth = false
                     self?.getTbBasicsMsg(webView, absoluteString: absoluteString)
-                    
+                    self?.toTbAuth = false
                 }
             }
             
@@ -283,25 +283,179 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
                 self?.toTbAuth = false
             }
             
-            // 获取我的足迹
-            self?.getTbfoot(webView: webView, absoluteString: absoluteString)
-            // 返回淘宝首页
-            self?.getTbHome(webView: webView, absoluteString: absoluteString)
-            //
-            self?.getWSMsg(webView: webView, absoluteString: absoluteString)
-            self?.getWSHome(webView: webView, absoluteString: absoluteString)
-            self?.getWSRepayHome(webView: webView, absoluteString: absoluteString)
-            self?.getWSRepayRecord(webView: webView, absoluteString: absoluteString)
-            self?.getSwitchPersonal(webView: webView, absoluteString: absoluteString)
-            self?.getZFBAccount(webView: webView, absoluteString: absoluteString)
+            // 我的足迹
+            if absoluteString?.hasPrefix("https://member1.taobao.com/member/fresh/deliver_address.htm") == true{
+                //                self.actionType = "收获地址"
+                let addressJS = "var url = window.location.href;" +
+                "var address = document.getElementsByClassName(\"next-table-body\")[0].outerHTML;" +
+                "var data = {\"url\":url,\"responseText\":address};" +
+                "window.webkit.messageHandlers.showHtml.postMessage(data);"
+                self?.evaluateJavaScript(addressJS)
+                // [步骤3] 从 收货地址界面  跳转到   足迹界面
+                self?.loadUrlStr("https://www.taobao.com/markets/footmark/tbfoot")
+            }
+            // 重新跳转到淘宝个人界面
+            if absoluteString?.hasPrefix("https://www.taobao.com/markets/footmark/tbfoot") == true{
+                self?.actionType = "我的足迹"
+                
+                let addressJS = "var url = window.location.href;" +
+                "var address = document.getElementsByClassName('J_ModContainer')[1].outerHTML;" +
+                "var data = {\"url\":url,\"responseText\":address};" +
+                "window.webkit.messageHandlers.showHtml.postMessage(data);"
+     
+                self?.evaluateJavaScript(addressJS)
+                // [步骤4] 重新跳转到淘宝个人界面
+                self?.loadUrlStr("https://i.taobao.com/my_taobao.htm")
+            }
+            // 淘宝快捷登录
+            if absoluteString?.hasPrefix("https://login.taobao.com/member/login.jhtml?redirectURL=") == true{
+                self?.actionType = "快捷登录"
+                
+                let addressJS = "document.querySelector(\"#login > div.login-content.nc-outer-box > div > div.fm-btn > button\").click();"
+                self?.evaluateJavaScript(addressJS)
+            }
+            
+            /*====================== 支付宝信息 start ======================*/
+            //商家平台
+            if absoluteString?.hasPrefix("https://b.alipay.com/page/home") == true{
+                self?.actionType = "商家平台首页"
+                for idx in 1...10 {
+                    log.debug("商家平台首页\(idx)")
+                    Thread.sleep(forTimeInterval: 0.5)
+                    if idx <= 5 {
+                        self?.loadUrlStr("https://shanghu.alipay.com/home/switchPersonal.htm")
+                    } else {
+                        self?.loadUrlStr("https://uemprod.alipay.com/home/switchPersonal.htm")
+                    }
+                }
+            }
+            //企业版
+            if absoluteString?.hasPrefix("https://uemprod.alipay.com/user/associatedAccount/admin.htm") == true{
+                self?.actionType = "企业版"
+                log.debug("企业版")
+                let js = "document.querySelector(\"#J_header > div > div.welcome\").click()"
+                self?.evaluateJavaScript(js)
+            }
+            // 支付宝信息
+            if absoluteString?.hasPrefix("https://my.alipay.com/portal/i.htm") == true || absoluteString?.hasPrefix("https://personalweb.alipay.com/portal/i.htm") == true{
+                self?.actionType = "进入支付宝成功"
+                log.debug("进入支付宝成功")
+                /// 支付宝余额
+                self?.getPageData(webView: webView, type: .yebPurchaseURL)
+                Thread.sleep(forTimeInterval: 0.25)
+                /// 阿里代扣
+                self?.getPageData(webView: webView, type: .mdeductAndTokenURL)
+                Thread.sleep(forTimeInterval: 0.25)
+                /// 支付宝实名基本信息
+                self?.getPageData(webView: webView, type: .aliAccountIndexURL)
+                Thread.sleep(forTimeInterval: 0.25)
+                /// 支付宝消息列表
+                self?.getPageData(webView: webView, type: .messageURL)
+                /// 回收站
+                self?.getTrashPageList(webView: webView, absoluteString: absoluteString)
+                Thread.sleep(forTimeInterval: 0.5)
+                /// 应用授权
+                self?.getAuthTokenManageList(webView: webView, absoluteString: absoluteString)
+                Thread.sleep(forTimeInterval: 0.5)
+                // [步骤6] 点击花呗余额
+                
+                // [步骤7] 获取用户绑卡列表
+                self?.loadUrlStr("https://zht.alipay.com/asset/bankList.htm")
+            }
+            // 绑卡信息
+            if absoluteString?.hasPrefix("https://zht.alipay.com/asset/bankList.htm") == true {
+                self?.actionType = "绑卡信息"
+                log.debug("绑卡信息")
+                Thread.sleep(forTimeInterval: 0.5)
+                let bankJS = "var url = window.location.href;" +
+                "var body = document.getElementsByClassName(\"card-box-list\")[0].outerHTML;" +
+                "var data = {\"url\":url,\"responseText\":body};" +
+                "window.webkit.messageHandlers.showHtml.postMessage(data);"
+                self?.evaluateJavaScript(bankJS)
+                self?.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
+            }
+            
+            /*====================== 网商信息 start ======================*/
+            // 网商登录
+            if absoluteString?.hasPrefix("https://login.mybank.cn/login/loginhome.htm") == true{
+                self?.actionType = "网商登录"
+                log.debug("网商登录")
+                
+                let WSMsg = "document.getElementsByClassName(\"userName___1vTUS\")[0].getElementsByTagName(\"span\")[0].click();\n" +
+                "setTimeout(function () {\n" +
+                "\tdocument.getElementsByClassName(\"logoLoad___78Syr\")[0].click();\n" +
+                "},3000);"
+                self?.evaluateJavaScript(WSMsg)
+            }
+            // 网商个人信息
+            if absoluteString?.hasPrefix("https://loan.mybank.cn/loan/profile.htm") == true || absoluteString?.hasPrefix("https://loanweb.mybank.cn/loan.html") == true{
+                self?.actionType = "网商贷"
+                self?.evaluateJavaScript(self?.getHtmlJS)
+                log.debug("网商登录成功，进入个人信息")
+                self?.loadUrlStr("https://loanweb.mybank.cn/repay/home.html")
+            }
+            // 网商还款信息
+            if absoluteString?.hasPrefix("https://loanweb.mybank.cn/repay/home.html") == true{
+                self?.actionType = "网商还款信息"
+                
+                self?.evaluateJavaScript(self?.getHtmlJS)
+                log.debug("网商个人信息，进入还款信息")
+                self?.loadUrlStr("https://loanweb.mybank.cn/repay/record.html")
+            }
+            // 网商借款信息
+            if absoluteString?.hasPrefix("https://loanweb.mybank.cn/repay/record.html") == true{
+                self?.actionType = "网商借款信息"
+                self?.evaluateJavaScript(self?.getHtmlJS)
+            }
+            /*====================== 支付宝错误信息处理 ======================*/
+            /// 需要支付宝登录
+            if absoluteString?.contains(find: "alipay.com/login/trustLoginResultDispatch.htm") == true || absoluteString?.contains(find: "https://authea179.alipay.com/error.htm?exceptionCode=TRUST_SECURITY_NEED_CHECK") == true{
+                log.debug("需要支付宝登录")
+                self?.actionType = "需要支付宝登录"
+                self?.webViewGoBack()
+            }
+            
+            // 支付宝加载失败
+            if absoluteString?.hasPrefix("https://auth.alipay.com/error") == true || absoluteString?.hasPrefix("https://render.alipay.com/p/s/alipay_site/wait") == true  {
+                log.debug("支付宝加载失败")
+                self?.actionType = "支付宝加载失败"
+                self?.webViewGoBack()
+            }
+            
+            // 出现支付宝扫码
+            if absoluteString?.hasPrefix("https://consumeprod.alipay.com/errorSecurity.htm") == true || absoluteString?.hasPrefix("https://consumeprod.alipay.com/record/checkSecurity.htm") == true  {
+                guard let `self` = self else { return }
+                log.debug("出现支付宝扫码")
+                self.actionType = "出现支付宝扫码"
+                self.scanNum += 1
+                if self.scanNum <= 3 {
+                    Thread.sleep(forTimeInterval: 0.5)
+                    self.webViewGoBack()
+                } else {
+                    self.actionType = "网商贷"
+                    self.loadUrlStr("https://loan.mybank.cn/loan/profile.htm")
+                }
+            }
+            
+            if absoluteString?.hasPrefix("https://authstl.alipay.com/login/trustLoginResultDispatch.htm") == true{
+                self?.actionType = "需要点击蓝色按钮"
+                for idx in 1...10 {
+                    log.debug("蓝色按钮\(idx)")
+                    let gotoAliJS = "document.getElementById(\"J-submit-cert-check\").click()"
+                    self?.evaluateJavaScript(gotoAliJS)
+                    Thread.sleep(forTimeInterval: 0.5)
+                    if idx == 10 {
+                        self?.trackTbUrl(url: "https://authstl.alipay.com/login/trustLoginResultDispatch.htm", html: "document.getElementById(\"J-submit-cert-check\").click()")
+                        self?.webViewGoBack()
+                    }
+                }
+            }
+            
             // 若未开通余额宝，直接获取阿里基本信息
-            self?.getYebShowContract(webView: webView, absoluteString: absoluteString)
-            self?.needAliPayLogin(webView: webView, absoluteString: absoluteString)
-            self?.getYebPurchase(webView: webView, absoluteString: absoluteString)
-            self?.getAliBaseMsg(webView: webView, absoluteString: absoluteString)
-            self?.getÅssetBankList(webView: webView, absoluteString: absoluteString)
-            self?.getAlipayError(webView: webView, absoluteString: absoluteString)
-            self?.getCheckSecurity(webView: webView, absoluteString: absoluteString)
+            if absoluteString?.contains(find: "https://yebprod.alipay.com/yeb/showContract.htm") == true {
+                self?.loadUrlStr("https://custweb.alipay.com/account/index.htm")
+            }
+            
             self?.getTBHtml()
         }
     }
@@ -330,10 +484,12 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
     
     private func getTbBasicsMsg(_ webView: WKWebView, absoluteString: String?){
         DispatchQueue.main.async { [weak self] in
+            self?.isAuthored = true
             // 协议获取淘宝个人信息
-            self?.loginSuccess(webView: webView, absoluteString: absoluteString)
+            self?.getTBMemberInfoAndRealName(webView: webView, absoluteString: absoluteString)
             // 协议获取订单信息
             self?.getOrders(webView: webView, absoluteString: absoluteString)
+            Thread.sleep(forTimeInterval: 1)
             // [步骤2] 跳转到收货地址信息
             self?.getAddress(webView: webView, absoluteString: absoluteString)
             HUD.clear()
@@ -341,3 +497,4 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
         }
     }
 }
+
