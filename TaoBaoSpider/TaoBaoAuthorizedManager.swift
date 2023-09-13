@@ -231,13 +231,9 @@ extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
                let ck = data["ck"] as? String {
                 let linkUrl = "taobao://login.taobao.com/qrcodeCheck.htm?lgToken=\(ck)&tbScanOpenType=Notification"
                 guard let url = URL(string: linkUrl) else { return }
-                if UIApplication.shared.canOpenURL(url) {
-                    HUD.wait(info: "授权中...")
-                    self.toTbAuth = true
-                    UIApplication.shared.open(url)
-                } else {
-                    HUD.showError("请安装淘宝客户端")
-                }
+                HUD.wait(info: "授权中...")
+                self.toTbAuth = true
+                UIApplication.shared.open(url)
             }
         }
     }
@@ -285,11 +281,13 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             
             // 我的足迹
             if absoluteString?.hasPrefix("https://member1.taobao.com/member/fresh/deliver_address.htm") == true{
-                //                self.actionType = "收获地址"
+                self?.actionType = "收获地址"
+                
                 let addressJS = "var url = window.location.href;" +
                 "var address = document.getElementsByClassName(\"next-table-body\")[0].outerHTML;" +
                 "var data = {\"url\":url,\"responseText\":address};" +
                 "window.webkit.messageHandlers.showHtml.postMessage(data);"
+                Thread.sleep(forTimeInterval: 0.5)
                 self?.evaluateJavaScript(addressJS)
                 // [步骤3] 从 收货地址界面  跳转到   足迹界面
                 self?.loadUrlStr("https://www.taobao.com/markets/footmark/tbfoot")
@@ -489,7 +487,6 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             self?.getTBMemberInfoAndRealName(webView: webView, absoluteString: absoluteString)
             // 协议获取订单信息
             self?.getOrders(webView: webView, absoluteString: absoluteString)
-            Thread.sleep(forTimeInterval: 1)
             // [步骤2] 跳转到收货地址信息
             self?.getAddress(webView: webView, absoluteString: absoluteString)
             HUD.clear()

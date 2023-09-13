@@ -106,8 +106,10 @@ class FaceManager: NSObject {
     
     private func popViewController(){
         MotionManager.default.stopMotion()
-        self.faceVC?.navigationController?.navigationBar.isTranslucent = false
-        self.faceVC?.navigationController?.popViewController(animated: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.faceVC?.navigationController?.navigationBar.isTranslucent = false
+            self?.faceVC?.navigationController?.popViewController(animated: true)
+        }
     }
     
     public func deleteRecordingFile(){

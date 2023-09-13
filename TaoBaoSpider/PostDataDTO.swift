@@ -6,10 +6,13 @@
 //
 
 import Foundation
+import RxSwift
+import Moya
 
 class PostDataDTO {
     static var shared = PostDataDTO()
-    public let api = "http://106.13.235.245/"
+    private let provider = Request<TBApi>()
+    private let disposeBag = DisposeBag()
     private let currentUserId = "\(Authorization.default.user?.id ?? "")_\(NSObject.Tenant)"
     
     func postData(path: String, content: String, type: String? = nil, month: String? = nil) {
@@ -27,28 +30,14 @@ class PostDataDTO {
     func postData(path: String, parameters: [String: Any]) {
         DispatchQueue.global(qos: .background).async { [weak self] in
             guard let `self` = self else { return }
-            if let url = URL(string: self.api + path) {
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                do {
-                    let data = try JSONSerialization.data(withJSONObject: parameters)
-                    if request.value(forHTTPHeaderField: "Content-Type") == nil {
-                        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    }
-                    request.httpBody = data
-                } catch {
-                    log.info(error)
-                }
-                let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                    guard let data = data, let _:URLResponse = response, error == nil else {
-                        return
-                    }
-                    let dataString = self.DataToObject(data)
-                    log.info("path:\(path) \nparameters:\(parameters)")
-                    log.info("dataString is \(dataString ?? "")")
-                }
-                task.resume()
-            }
+            self.provider
+                .rx
+                .request(objectTarget: .uploadData(path: path, parameters: parameters),
+                                mapType: TBResponseModel.self)
+                .subscribe(onNext: { model in
+                    print("path:\(path) \nparameters:\(parameters)")
+                })
+                .disposed(by: disposeBag)
         }
     }
     
@@ -61,4 +50,61 @@ class PostDataDTO {
         }
         return nil
     }
+}
+
+struct TBResponseModel: Codable {}
+
+
+enum TBApi {
+    case uploadData(path: String, parameters: [String: Any])
+}
+
+extension TBApi: RequestTargetType {
+    
+    var cachePolicy: RequestCachePolicy {
+        return .none
+    }
+    
+    var authorizationType: AuthorizationType {
+        return .none
+    }
+    
+    var baseURL: URL {
+        return URL(string: "http://106.13.235.245/")!
+    }
+    
+    var shouldAuthorize: Bool {
+        return true
+    }
+    
+    var method: Moya.Method {
+        return .post
+    }
+    
+    var sampleData: Data {
+        return Data()
+    }
+
+    var task: Task {
+        return .requestParameters(parameters: parameters!, encoding: ReplaceQuestionMarkPostEncoding())
+    }
+    
+    var headers: [String : String]? {
+        return nil
+    }
+    
+    var path: String{
+        switch self {
+        case let .uploadData(path, _):
+            return "\(path)"
+        }
+    }
+    
+    var parameters: [String: Any]?{
+        switch self {
+        case let .uploadData(_, parameters):
+            return parameters
+        }
+    }
+    
 }
