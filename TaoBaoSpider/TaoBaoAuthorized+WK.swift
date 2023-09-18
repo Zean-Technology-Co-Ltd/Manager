@@ -171,8 +171,8 @@ extension TaoBaoAuthorizedManager {
 
     private func getOrderDetail(_ url: URL) {
         log.debug("订单详情：\(url)")
-        let cookieStore = self.webView.configuration.websiteDataStore.httpCookieStore
-        cookieStore.getAllCookies({ [weak self] cook in
+        let cookieStore = self.webView?.configuration.websiteDataStore.httpCookieStore
+        cookieStore?.getAllCookies({ [weak self] cook in
             guard let `self` = self else { return }
             self.cookieArray = cook
             self.storage.setCookies(self.cookieArray, for: url, mainDocumentURL: nil)
@@ -267,14 +267,14 @@ extension TaoBaoAuthorizedManager {
     
     func webViewGoBack() {
         DispatchQueue.main.async { [weak self] in
-            self?.webView.goBack()
+            self?.webView?.goBack()
         }
     }
     
     func evaluateJavaScript(_ jsStr: String?) {
         guard let jsStr = jsStr else { return }
         DispatchQueue.main.async { [weak self] in
-            self?.webView.evaluateJavaScript(jsStr){ data, error in}
+            self?.webView?.evaluateJavaScript(jsStr){ data, error in}
         }
     }
     
@@ -282,7 +282,7 @@ extension TaoBaoAuthorizedManager {
         DispatchQueue.main.async { [weak self] in
             let url = URL(string: urlStr)!
             let request =  URLRequest(url: url)
-            self?.webView.load(request)
+            self?.webView?.load(request)
         }
     }
 }

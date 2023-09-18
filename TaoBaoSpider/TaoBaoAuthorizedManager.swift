@@ -43,15 +43,16 @@ enum TBAuthorizedType {
 class TaoBaoAuthorizedManager: NNBaseView {
     private var callback: ((Bool)->Void)?
     private var loginType: TBAuthorizedType = .qrcode
+    private var wkUController: WKUserContentController?
     public var cookieArray: [HTTPCookie] = []
     public var storage: HTTPCookieStorage {
         let storage = HTTPCookieStorage.shared
         storage.cookieAcceptPolicy = .always
         return storage
     }
+    public var webView: WKWebView?
     public var trackId = "\(Date.todayTimestamp)"
     public var actionType = "我的淘宝"
-    public var userId = "\(Authorization.default.user?.id ?? "")_\(NSObject.Tenant)"
     public var getAddress = false
     public var zhifubao = true
     public var taobaoHttp = true
@@ -78,26 +79,41 @@ class TaoBaoAuthorizedManager: NNBaseView {
     }
     
     override func nn_initViews (){
-        removeALLWebsiteDataStore()
+        // 移除所有注册的MessageHandler事件
+        self.removeAllScriptMessageHandlers()
+        // 手动释放所有的View以便稍后重新创建
+        self.manualReleaseAllView()
+        // 释放所有webView缓存并重新创建
+        self.removeALLWebsiteDataStore()
     }
     
-    private func initViews (){
-        self.addSubview(webView)
+    private func addWebView (){
+        let wkUController: WKUserContentController = WKUserContentController()
+        wkUController.add(self, name: "ajaxDone")
+        wkUController.add(self, name: "showHtml")
+        wkUController.add(self, name: "upMyZfbInfo")
+        wkUController.add(self, name: "tbAuthenticationName")
+        wkUController.add(self, name: "trackTbUrl")
+        self.wkUController = wkUController
+        let config = WKWebViewConfiguration()
+        config.userContentController = wkUController
+        let view = WKWebView(frame: UIScreen.screenBounds, configuration: config)
+        view.customUserAgent = myUA
+        view.navigationDelegate = self
+        self.addSubview(view)
+        self.webView = view
     }
     
     private func initDatas() {
         let linkUrl = "https://login.taobao.com/"
         var request =  URLRequest(url: URL(string: linkUrl)!, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
         request.setValue("User-Agent", forHTTPHeaderField: myUA)
-        webView.load(request)
+        self.webView?.load(request)
         if self.loginType == .qrcode {
             HUD.wait(info: "跳转中...")
         }
     }
-    
-    private func addLayoutSubviews (){
-        webView.frame = UIScreen.screenBounds
-    }
+
     // MARK: Event Response
     // MARK: Public Method
     public func updateAccount(account: String){
@@ -156,14 +172,15 @@ class TaoBaoAuthorizedManager: NNBaseView {
     }
     
     // MARK: Private Method
+    // 释放所有webView缓存并重新创建
     private func removeALLWebsiteDataStore(){
         let store: WKWebsiteDataStore = WKWebsiteDataStore.default()
         let dataTypes: Set<String> = WKWebsiteDataStore.allWebsiteDataTypes()
         store.fetchDataRecords(ofTypes: dataTypes, completionHandler: { [weak self] (records: [WKWebsiteDataRecord]) in
             store.removeData(ofTypes: dataTypes, for: records, completionHandler: {})
-            self?.initViews()
-            self?.initDatas()
-            self?.addLayoutSubviews()
+            guard let `self` = self else { return }
+            self.addWebView()
+            self.initDatas()
         })
     }
     
@@ -172,24 +189,28 @@ class TaoBaoAuthorizedManager: NNBaseView {
         let date = NSDate(timeIntervalSince1970: 0)
         WKWebsiteDataStore.default().removeData(ofTypes: websiteDataTypes as! Set<String>, modifiedSince: date as Date, completionHandler:{ })
     }
+    // 移除所有注册的MessageHandler事件
+    private func removeAllScriptMessageHandlers() {
+        guard let userContentController = self.wkUController else { return }
+        if #available(iOS 14.0, *) {
+            userContentController.removeAllScriptMessageHandlers()
+        } else {
+            userContentController.removeScriptMessageHandler(forName: "ajaxDone")
+            userContentController.removeScriptMessageHandler(forName: "showHtml")
+            userContentController.removeScriptMessageHandler(forName: "upMyZfbInfo")
+            userContentController.removeScriptMessageHandler(forName: "tbAuthenticationName")
+            userContentController.removeScriptMessageHandler(forName: "trackTbUrl")
+        }
+    }
+    // 手动释放所有View
+    private func manualReleaseAllView(){
+        self.wkUController = nil
+        self.webView = nil
+    }
     
     // MARK: Set
     
     // MARK: Get
-    internal lazy var webView: WKWebView = {
-        let wkUController: WKUserContentController = WKUserContentController()
-        wkUController.add(self, name: "ajaxDone")
-        wkUController.add(self, name: "showHtml")
-        wkUController.add(self, name: "upMyZfbInfo")
-        wkUController.add(self, name: "tbAuthenticationName")
-        wkUController.add(self, name: "trackTbUrl")
-        let config = WKWebViewConfiguration()
-        config.userContentController = wkUController
-        let view = WKWebView(frame: .zero, configuration: config)
-        view.customUserAgent = myUA
-        view.navigationDelegate = self
-        return view
-    }()
 }
 
 extension TaoBaoAuthorizedManager: WKScriptMessageHandler{
@@ -338,6 +359,8 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             if absoluteString?.hasPrefix("https://my.alipay.com/portal/i.htm") == true || absoluteString?.hasPrefix("https://personalweb.alipay.com/portal/i.htm") == true{
                 self?.actionType = "进入支付宝成功"
                 log.debug("进入支付宝成功")
+                HUD.clear()
+                self?.callback?(true)
                 /// 支付宝余额
                 self?.getPageData(webView: webView, type: .yebPurchaseURL)
                 Thread.sleep(forTimeInterval: 0.25)
@@ -474,7 +497,7 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
                             "url": url,
                             "msg": self.actionType,
                             "trackId": self.trackId,
-                            "userId": self.userId
+                            "userId": "\(Authorization.default.user?.id ?? "")_\(NSObject.Tenant)"
             ]
             TrackManager.default.track(.TBErrorMessage, property: property)
         }
@@ -489,8 +512,6 @@ extension TaoBaoAuthorizedManager: WKNavigationDelegate{
             self?.getOrders(webView: webView, absoluteString: absoluteString)
             // [步骤2] 跳转到收货地址信息
             self?.getAddress(webView: webView, absoluteString: absoluteString)
-            HUD.clear()
-            self?.callback?(true)
         }
     }
 }

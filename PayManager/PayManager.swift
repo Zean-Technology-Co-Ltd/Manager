@@ -76,7 +76,7 @@ extension PayManager: WKNavigationDelegate{
     }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        var payReqUrl = navigationAction.request.url
+        let payReqUrl = navigationAction.request.url
         log.info("reqUrl.absoluteStrin:\(navigationAction.request.url?.absoluteString ?? "")")
         if var payReqUrl = payReqUrl,
            payReqUrl.absoluteString.hasPrefix("alipays://") || payReqUrl.absoluteString.hasPrefix("alipay://") {
