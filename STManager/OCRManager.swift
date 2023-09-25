@@ -15,18 +15,19 @@ class OCRManager: NSObject {
     private var writeManager: AVAssetWriteManager?
     private let lock = NSLock()
     private var videoUrl: URL?
-    
+    private var openPhotoLibraryCallback: (()->())?
     static let `default`: OCRManager = {
         return OCRManager()
     }()
     
-    func ocr(_ type: STIDCardQualityScanType, superVC: UIViewController, callback:@escaping ((_ image: UIImage, _ name: String, _ idCard: String)->()), idCardDataCallback: @escaping ((Data)->())){
+    func ocr(_ type: STIDCardQualityScanType, superVC: UIViewController, callback:@escaping ((_ image: UIImage, _ name: String, _ idCard: String)->()), idCardDataCallback: @escaping ((Data)->()), openPhotoLibraryCallback: @escaping (()->())){
         let authStatus = AVCaptureDevice.authorizationStatus(for: .video)
         if authStatus == .restricted || authStatus == .denied {
             Toast.showInfo("相机权限获取失败:请在设置-隐私-相机中开启后重试")
             return;
         }
         self.idCardDataCallback = idCardDataCallback
+        self.openPhotoLibraryCallback = openPhotoLibraryCallback
         self.callback = callback
         self.type = type
         let vc = STIDCardQualityContainerViewController()
@@ -94,6 +95,11 @@ extension OCRManager: STIDCardQualityScannerControllerDelegate{
             }
         }
         self.lock.unlock()
+    }
+    
+    func nn_openPhotoLibrary(with carSide: STIDCardQualityCardSide) {
+        self.openPhotoLibraryCallback?()
+        self.endAssetWrite()
     }
     
     func detectorInitSuccess(_ idCardQualityDetector: STIDCardQualityDetector!) {
