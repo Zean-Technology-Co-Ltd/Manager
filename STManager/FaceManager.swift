@@ -109,6 +109,7 @@ class FaceManager: NSObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.faceVC?.navigationController?.navigationBar.isTranslucent = false
             self?.faceVC?.navigationController?.popViewController(animated: true)
+            self?.faceVC = nil
         }
     }
     
@@ -158,7 +159,9 @@ extension FaceManager: STLivenessDetectorDelegate{
     
     func livenessSuccess(with resultInfo: STLivenessResultInfo!, cloudInfo: STLivenessCloudInfo!) {
         guard let livenessImage = resultInfo.croppedImages.last else { return }
-        self.callback?(resultInfo.protobufData, livenessImage.image)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.callback?(resultInfo.protobufData, livenessImage.image)
+        }
         self.endAssetWrite()
         popViewController()
     }
@@ -186,7 +189,6 @@ extension FaceManager: STLivenessDetectorDelegate{
         log.info("活体检测已取消")
         self.writeManager?.destroyWrite()
         popViewController()
-        self.faceVC = nil
     }
     
     private func messageStringByLivenessResult(result: STIDLivenessResult, faceError: STIDLivenessFaceError) -> String{
