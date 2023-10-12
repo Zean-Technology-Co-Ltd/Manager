@@ -31,7 +31,7 @@ class NNNavigationManager: NSObject, RequestAuthorizationPluginUpdate, AccessTok
         register(unAuthorisedProcessor: self)
     }
     
-    func switchRoot(_ type: NNSwitchRootType, window: UIWindow? = UIApplication.shared.keyWindow) {
+    func switchRoot(_ type: NNSwitchRootType, window: UIWindow? = UIApplication.shared.nn_keyWindow) {
         if self.window == nil {
             self.window = window
         }
