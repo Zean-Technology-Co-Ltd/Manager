@@ -14,7 +14,7 @@ enum NNPayType: Int {
     case other
 }
 
-class PayManager: NNBaseView {
+class PayManager: NNBaseView, WKNavigationDelegate {
     private var linkUrl: String?
     private var paymentType: NNPayType = .wechat
     // MARK: Lifecycle
@@ -67,9 +67,7 @@ class PayManager: NNBaseView {
         view.navigationDelegate = self
         return view
     }()
-}
-
-extension PayManager: WKNavigationDelegate{
+    
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         Toast.showInfo("支付异常")
         self.removeFromSuperview()
@@ -110,5 +108,3 @@ extension PayManager: WKNavigationDelegate{
         }
     }
 }
-
-

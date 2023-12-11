@@ -141,7 +141,7 @@ class OneKeyLoginManager: NSObject {
         uiModel.checkBoxWH = 16
         uiModel.expandAuthPageCheckedScope = true
         uiModel.checkBoxImageEdgeInsets = .zero
-        uiModel.checkBoxImages = [R.image.common_agreement_unselect()!, R.image.common_select_orange()!]
+        uiModel.checkBoxImages = [R.image.common_agreement_unselect()!, R.image.common_agreement_select()!]
         uiModel.privacyOne = ["《注册协议》", "\(ApiConst.APIKey.appstoreURL)/pages/register.html"]
         uiModel.privacyTwo = ["《隐私协议》", "\(ApiConst.APIKey.appstoreURL)/pages/privacy.html"]
         uiModel.privacyOperatorPreText = "《"

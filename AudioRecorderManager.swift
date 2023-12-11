@@ -63,7 +63,7 @@ class AudioRecorderManager: NSObject {
             stopRecording()
         }
     }
-    
+
     //播放
     func play() {
         //设置外放模式，不然录音会用听筒模式播放，就很小声

@@ -67,13 +67,11 @@ extension NNPresentationManager {
 extension NNPresentationManager {
     class func nn_onShowActionSheetVC(_ presentVC: UIViewController){
         nn_onShowActionSheetVC(presentVC,
-                               cornerRadius: 0,
-                               completion: nil)
+                               cornerRadius: 0)
     }
     
     class func nn_onShowActionSheetVC(_ presentVC: UIViewController,
-                                      cornerRadius: CGFloat,
-                                      completion: NNDissingHandler){
+                                      cornerRadius: CGFloat){
         nn_onShowActionSheetVC(presentVC,
                                cornerRadius: cornerRadius,
                                animatedStyle: .scale,
